@@ -1,0 +1,35 @@
+d
+    8:announce
+        36:http://nyaa.tracker.wf:7777/announce
+    13:announce-list
+        l
+            l 36:http://nyaa.tracker.wf:7777/announce e
+            l 33:udp://open.stealth.si:80/announce e
+            l 42:udp://tracker.opentrackr.org:1337/announce e
+            l 43:udp://tracker.coppersurfer.tk:6969/announce e
+            l 37:udp://exodus.desync.com:6969/announce e
+        e
+    7:comment
+        28:https://nyaa.si/view/1145976
+    10:created by
+        6:NyaaV2
+    13:creation date
+        i 1558711813 e
+    8:encoding
+        5:UTF-8
+    4:info
+        d
+            6:length
+                i 25773858 e
+            4:name
+                58:Attack on Titan - Shingeki no Kyojin 117 [MangaStream].zip
+            10:name.utf-8
+                58:Attack on Titan - Shingeki no Kyojin 117 [MangaStream].zip
+            12:piece length
+                i 32768 e
+            6:pieces
+                15740:hidden
+            7:private
+                i 0 e
+        e
+e
