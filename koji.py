@@ -28,35 +28,34 @@ params = {
 }
 response = requests.get(url=announce, params=params)
 response = bdecode(response.content)
-print('Response: ', response)
+# print('Response: ', response)
 
-response = [
-    ('complete', 18),
-    ('downloaded', 496),
-    ('incomplete', 2),
-    ('interval', 1810),
-    ('peers', b"@\xeba\xba\x00\x00O\xa6\xf9\x92F\xcfQ\x11\x18\xcah\xe6U\xe2\x7f\xfc#ZYMs#\x1eaY\x86\xa4l#'_\xd3\xf8\x1e\x81\x85c\\Hx\x1a\xe1m\xfc5\xea\xf4'q\xbe\xe8\x13\xa8)\xa2\xdc\xa2\n#'\xaa\xe7\xbb\x03\xc2l\xad\xef\xe8.#'\xb0('\x8e\xc0\x08\xb5+?:\xd2o\xb5\xa9\x1b\x1d#'\xb9\x15\xd9M\xd8\xef\xb9-\xc3\xc5N\x90\xb9\x95ZT\xc79\xde\xfc*.#'"),
-    ('peers6', '')
-]
+# response = [
+#     ('complete', 18),
+#     ('downloaded', 496),
+#     ('incomplete', 2),
+#     ('interval', 1810),
+#     ('peers', b"@\xeba\xba\x00\x00O\xa6\xf9\x92F\xcfQ\x11\x18\xcah\xe6U\xe2\x7f\xfc#ZYMs#\x1eaY\x86\xa4l#'_\xd3\xf8\x1e\x81\x85c\\Hx\x1a\xe1m\xfc5\xea\xf4'q\xbe\xe8\x13\xa8)\xa2\xdc\xa2\n#'\xaa\xe7\xbb\x03\xc2l\xad\xef\xe8.#'\xb0('\x8e\xc0\x08\xb5+?:\xd2o\xb5\xa9\x1b\x1d#'\xb9\x15\xd9M\xd8\xef\xb9-\xc3\xc5N\x90\xb9\x95ZT\xc79\xde\xfc*.#'"),
+#     ('peers6', '')
+# ]
 
-for key, value in response:
+for key, value in response.items():
     if key == 'peers':
         peers = value
     if key == 'failure reason':
         raise Exception(value)
 
-num = 1
 peers = [peers[i:i + 6] for i in range(0, len(peers), 6)] # Split 6 byte parts
-ip = '.'.join(str(i) for i in peers[num][:4])
-# ip = str(int.from_bytes(peers[0][:4], 'big'))
-port = int.from_bytes(peers[num][-2:], 'big')
+peer = peers[0]
+ip = '.'.join(str(b) for b in peer[:4])
+port = int.from_bytes(peer[-2:], 'big')
 
-print('Peer: ', peers[num])
 print('IP: ', ip)
 print('Port: ', port)
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock = socket.socket()
+print('Connecting...')
 sock.connect((ip, port))
-
+print('Connected.')
 pstr = b'BitTorrent protocol'
 pstrlen = bytes([len(pstr)])
 reserved = b'\x00' * 8
