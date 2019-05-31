@@ -21,7 +21,10 @@ class Manager(Thread):
         data = b''
         while True:
             try:
+                print('Waiting for packet')
                 packet = socket.recv(4096)
+                print('Received packet.')
+                print(repr(packet))
                 if len(packet) == 0:
                     break
                 data += packet
