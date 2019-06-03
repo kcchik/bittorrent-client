@@ -1,12 +1,12 @@
 from torrent import Torrent
 from tracker import Tracker
-from manager import Manager
+from peer_manager import PeerManager
 
 if __name__ == '__main__':
     path = 'torrents/Maquia - When the Promised Flower Blooms [BD 1080p x265 12bit].mkv.torrent'
     torrent = Torrent(path) # Parse torrent file
     tracker = Tracker(torrent) # Connect to tracker and get peers
-    manager = Manager(tracker) # Connect to peers
+    manager = PeerManager(tracker) # Connect to peers
     print('%i available peers' % len(manager.peers))
     print('Connecting...')
     manager.connect()

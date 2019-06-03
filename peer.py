@@ -18,5 +18,8 @@ class Peer:
         pstrlen = bytes([len(pstr)])
         reserved = b'\x00' * 8
         handshake = pstrlen + pstr + reserved + tracker.info_hash + tracker.peer_id.encode('iso-8859-1')
-        print('Handshake To: ', handshake)
-        self.socket.send(handshake)
+        print('Handshake: ', handshake)
+        try:
+            self.socket.send(handshake)
+        except OSError as e:
+            print('Failed to handshake: ', e)

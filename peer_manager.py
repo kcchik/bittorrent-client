@@ -1,7 +1,7 @@
 from threading import Thread
 from peer import Peer
 
-class Manager(Thread):
+class PeerManager(Thread):
     def __init__(self, tracker):
         Thread.__init__(self)
         self.tracker = tracker
@@ -13,23 +13,20 @@ class Manager(Thread):
                 data = self.receive(peer.socket)
                 if not data:
                     self.remove(peer)
-                    print('No data')
                     continue
-                print(repr(data))
 
     def receive(self, socket):
         data = b''
         while True:
             try:
-                print('Waiting for packet')
+                print('\nWaiting for packet')
                 packet = socket.recv(4096)
-                print('Received packet.')
-                print(repr(packet))
+                print('Packet: ', repr(packet))
                 if len(packet) == 0:
                     break
                 data += packet
             except OSError as e:
-                print(e)
+                print('Failed to receive: ', e)
                 break
         return data
 
@@ -40,9 +37,7 @@ class Manager(Thread):
 
     def handshake(self):
         for peer in self.peers:
-            handshake = peer.handshake(self.tracker)
-            if not handshake:
-                self.remove(peer)
+            peer.handshake(self.tracker)
 
     def remove(self, peer):
         peer.socket.close()
