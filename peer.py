@@ -27,13 +27,13 @@ class Peer:
     def parse(self, data):
         # print('From %s: ' % self.address[0], data)
         pstrlen = data[0]
-        pstr = data[1:pstrlen]
-        data = data[pstrlen:]
+        pstr = data[1:pstrlen + 1]
+        data = data[pstrlen + 1:]
         reserved = data[0:8]
         info_hash = data[8:28]
         peer_id = data[28:48]
         data = data[48:]
-        while len(data) > 0:
+        while len(data) > 4:
             length = int.from_bytes(data[0:4], 'big')
             if length > 1:
                 payload = data[5:length + 4]
@@ -89,4 +89,4 @@ class Peer:
         print('cancel')
 
     def port(self, port):
-        print(port)
+        print('port')
