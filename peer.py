@@ -1,10 +1,16 @@
 import socket
+from bitstring import BitArray
 
 class Peer:
-    def __init__(self, address):
+    def __init__(self, address, num_pieces):
         self.address = address
         self.socket = socket.socket()
         self.socket.settimeout(5)
+        self.bitfield = [False] * num_pieces
+        self.state = {
+            'choked': True,
+            'handshake': False,
+        }
 
     def connect(self):
         try:
@@ -20,19 +26,24 @@ class Peer:
         handshake = pstrlen + pstr + reserved + tracker.info_hash + tracker.peer_id.encode('iso-8859-1')
         try:
             self.socket.send(handshake)
-            print('Handshake success')
         except OSError as e:
-            print('Handshake failure')
+            e
+
+    def interested(self):
+        try:
+            self.socket.send()
+        except OSError as e:
+            e
 
     def parse(self, data):
-        # print('From %s: ' % self.address[0], data)
-        pstrlen = data[0]
-        pstr = data[1:pstrlen + 1]
-        data = data[pstrlen + 1:]
-        reserved = data[0:8]
-        info_hash = data[8:28]
-        peer_id = data[28:48]
-        data = data[48:]
+        if self.state['handshake'] == False:
+            pstrlen = data[0]
+            pstr = data[1:pstrlen + 1]
+            data = data[pstrlen + 1:]
+            reserved = data[0:8]
+            info_hash = data[8:28]
+            peer_id = data[28:48]
+            data = data[48:]
         while len(data) > 4:
             length = int.from_bytes(data[0:4], 'big')
             if length > 1:
@@ -40,53 +51,46 @@ class Peer:
             if length > 0:
                 id = data[4]
                 if id == 0:
-                    self.choke()
+                    self.handle_choke()
                 if id == 1:
-                    self.unchoke()
-                if id == 2:
-                    self.interested()
-                if id == 3:
-                    self.not_interested()
+                    self.handle_unchoke()
                 if id == 4:
-                    self.have(payload)
+                    self.handle_have(payload)
                 if id == 5:
-                    self.bitfield(payload)
+                    self.handle_bitfield(payload)
                 if id == 6:
-                    self.request(payload[0:4], payload[4:8], payload[8:12])
+                    self.handle_request(payload[0:4], payload[4:8], payload[8:12])
                 if id == 7:
-                    self.piece(payload[0:4], payload[4:8], payload[8:length])
+                    self.handle_piece(payload[0:4], payload[4:8], payload[8:length])
                 if id == 8:
-                    self.cancel(payload[0:4], payload[4:8], payload[8:12])
+                    self.handle_cancel(payload[0:4], payload[4:8], payload[8:12])
                 if id == 9:
-                    self.port(payload)
+                    self.handle_port(payload)
             data = data[length + 4:]
+        self.state['handshake'] = True
 
-    def choke(self):
+    def handle_choke(self):
         print('choke')
 
-    def unchoke(self):
+    def handle_unchoke(self):
         print('unchoke')
 
-    def interested(self):
-        print('interested')
-
-    def not_interested(self):
-        print('not interested')
-
-    def have(self, index):
+    def handle_have(self, index):
         print('have')
+        self.bitfield[int.from_bytes(index, 'big')] = True
 
-    def bitfield(self, bitfield):
+    def handle_bitfield(self, bitfield):
         print('bitfield')
+        self.bitfield = list(BitArray(bitfield))[0:len(self.bitfield)]
 
-    def request(self, index, begin, length):
+    def handle_request(self, index, begin, length):
         print('request')
 
-    def piece(self, index, begin, block):
+    def handle_piece(self, index, begin, block):
         print('piece')
 
-    def cancel(self, index, begin, length):
+    def handle_cancel(self, index, begin, length):
         print('cancel')
 
-    def port(self, port):
+    def handle_port(self, port):
         print('port')

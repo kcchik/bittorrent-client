@@ -5,7 +5,7 @@ class PeerManager(Thread):
     def __init__(self, tracker):
         Thread.__init__(self)
         self.tracker = tracker
-        self.peers = [Peer(address) for address in tracker.addresses]
+        self.peers = [Peer(address, tracker.num_pieces) for address in tracker.addresses]
 
     def run(self):
         while True:
@@ -15,6 +15,8 @@ class PeerManager(Thread):
                     self.remove(peer)
                     continue
                 peer.parse(data)
+                if peer.state['choking']:
+                    peer.interested()
 
     def receive(self, socket):
         data = b''

@@ -4,6 +4,7 @@ import requests
 
 class Tracker:
     def __init__(self, torrent):
+        self.num_pieces = int(len(torrent.info['pieces']) / 20)
         self.info_hash = hashlib.sha1(bencode(torrent.info)).digest()
         self.peer_id = '-KOJI-20725745207257'
         params = {
