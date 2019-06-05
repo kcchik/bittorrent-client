@@ -14,19 +14,17 @@ class PeerManager(Thread):
                 if not data:
                     self.remove(peer)
                     continue
+                peer.parse(data)
 
     def receive(self, socket):
         data = b''
         while True:
             try:
-                print('\nWaiting for packet')
                 packet = socket.recv(4096)
-                print('Packet: ', repr(packet))
                 if len(packet) == 0:
                     break
                 data += packet
             except OSError as e:
-                print('Failed to receive: ', e)
                 break
         return data
 
