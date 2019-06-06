@@ -2,10 +2,14 @@ from bencode import bdecode
 
 class Torrent:
     def __init__(self, path):
-        file = open(path, 'rb')
-        content = file.read() # Raw contents
-        content = bytes(content) # ISO-8859-1 encoding (\x__)
-        dict = bdecode(content) # Decode into dictionary
+        try:
+            file = open(path, 'rb')
+        except Error as e:
+            print(e)
+        dict = bdecode(bytes(file.read())) # decode into dictionary
         self.announce = dict['announce']
         self.comment = dict['comment']
         self.info = dict['info']
+        self.pieces = [self.info['pieces'][i:i + 20] for i in range(0, len(self.info['pieces']), 20)]
+        self.piece_length = self.info['piece length']
+        self.length = self.info['length']
