@@ -1,14 +1,19 @@
 class Piece():
     def __init__(self, size):
-        self.available = False
         self.blocks = [None] * size
-        self.done = False
+        self.state = {
+            'complete': False,
+            'requesting': None,
+        }
 
-    def complete(self):
+    def left(self):
+        left = len(self.blocks)
         for block in self.blocks:
-            if not block:
-                return False
-        return True
+            if block:
+                left = left - 1
+        return left
 
     def data(self):
-        return b''.join(self.blocks)
+        if self.left() == 0:
+            return b''.join(self.blocks)
+        return b''

@@ -3,7 +3,7 @@ from tracker import Tracker
 from manager import Manager
 
 if __name__ == '__main__':
-    path = 'torrents/[Galator] Maquia - When The Promised Flower Blooms (BD 1080p x264 10-bit FLAC) [5188F390].mkv.torrent'
+    path = 'torrents/Yuragi_Sou_No_Yuuna_San_v16.rar.torrent'
     torrent = Torrent(path)
     print(torrent.comment)
 
