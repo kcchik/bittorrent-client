@@ -95,9 +95,15 @@ class Peer(Thread):
         block = payload[8:]
         piece = self.manager.pieces[i]
         piece.blocks[int(offset / config.BLOCK_SIZE)] = block
-        if piece.left() == 0 and hashlib.sha1(piece.data()).digest() == self.manager.tracker.torrent.pieces[i]:
-            print('piece complete')
-            piece.state['complete'] = True
+        if piece.left() == 0:
+            if hashlib.sha1(piece.data()).digest() == self.manager.tracker.torrent.pieces[i]:
+                print('piece complete')
+                piece.state['complete'] = True
+            else:
+                print('piece incomplete')
+                piece.blocks = [None] * len(piece.blocks)
+                piece.state['requesting'] = None
+                self.has[i] = False
 
     def send(self, message):
         try:
