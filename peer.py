@@ -12,17 +12,16 @@ class Peer(Thread):
         self.manager = manager
         self.address = address
         self.socket = socket.socket()
-        self.socket.settimeout(10)
         self.has = [False] * len(manager.pieces)
         self.state = {
             'choking': True,
             'handshake': False,
         }
+        self.peer_id = b''
 
     def connect(self):
         try:
             self.socket.connect(self.address)
-            print('connected: ', self.id)
             return True
         except OSError as e:
             return False
@@ -34,6 +33,7 @@ class Peer(Thread):
         while True:
             message = self.receive()
             if not message:
+                print('no message', self.peer_id)
                 return
             self.parse(message)
 
@@ -63,8 +63,9 @@ class Peer(Thread):
     def parse(self, data):
         if not self.state['handshake']:
             pstrlen = data[0]
-            pstr, reserved, info_hash, peer_id = unpack('>{}s8s20s20s'.format(pstrlen), data[1:pstrlen + 49])
+            pstr, reserved, info_hash, self.peer_id = unpack('>{}s8s20s20s'.format(pstrlen), data[1:pstrlen + 49])
             data = data[pstrlen + 49:]
+            print('connected', self.peer_id)
         while len(data) > 4:
             length = unpack('>I', data[0:4])[0]
             if length > 1:
@@ -97,10 +98,10 @@ class Peer(Thread):
         piece.blocks[int(offset / config.BLOCK_SIZE)] = block
         if piece.left() == 0:
             if hashlib.sha1(piece.data()).digest() == self.manager.tracker.torrent.pieces[i]:
-                print('piece complete')
+                print('piece complete', i)
                 piece.state['complete'] = True
             else:
-                print('piece incomplete')
+                print('piece incomplete', i)
                 piece.blocks = [None] * len(piece.blocks)
                 piece.state['requesting'] = None
                 self.has[i] = False

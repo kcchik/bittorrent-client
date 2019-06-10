@@ -23,7 +23,9 @@ class Manager():
             return True
 
     def write(self):
+        print('writing')
         file = open('./complete/%s' % self.tracker.torrent.name, 'wb')
         for piece in self.pieces:
             file.write(b''.join(piece.blocks))
+        print('complete')
         file.close()

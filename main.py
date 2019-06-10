@@ -3,7 +3,7 @@ from tracker import Tracker
 from manager import Manager
 
 if __name__ == '__main__':
-    path = 'torrents/Yuragi_Sou_No_Yuuna_San_v16.rar.torrent'
+    path = 'torrents/(一般コミック)今日から俺は!! 全38巻.zip.torrent'
     torrent = Torrent(path)
     print(torrent.comment)
 
