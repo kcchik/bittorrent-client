@@ -4,6 +4,7 @@ class Piece():
         self.state = {
             'complete': False,
             'requesting': None,
+            'available': False,
         }
 
     def left(self):
