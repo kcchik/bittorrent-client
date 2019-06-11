@@ -1,6 +1,7 @@
 from torrent import Torrent
 from tracker import Tracker
 from manager import Manager
+import sys
 
 if __name__ == '__main__':
     path = [
@@ -10,7 +11,7 @@ if __name__ == '__main__':
         "torrents/[CrazySubs] Queen's Blade Unlimited - 1 (ReinForce) English Subs.srt.torrent",
         'torrents/[Galator] Maquia - When The Promised Flower Blooms (BD 1080p x264 10-bit FLAC) [5188F390].mkv.torrent',
     ]
-    torrent = Torrent(path[0])
+    torrent = Torrent(path[int(sys.argv[1])])
     print(torrent.comment)
 
     tracker = Tracker(torrent)
