@@ -15,6 +15,7 @@ class Peer(Thread):
         socket.timeout(10)
         self.has = [False] * len(manager.pieces)
         self.piece = None
+        self.piece_i = -1
         self.state = {
             'choking': True,
             'handshake': False,
@@ -40,7 +41,7 @@ class Peer(Thread):
             except OSError as e:
                 self.printo('disconnecting %s' % e)
                 if self.piece:
-                    self.piece.state['requesting'] = None
+                    self.piece.state['requesting'] = False
                 return
 
             if len(packet) and not self.state['handshake']:
@@ -59,12 +60,11 @@ class Peer(Thread):
             if self.state['choking']:
                 self.send_interested()
             else:
-                i = self.next_available_piece_index()
-                if i >= 0:
-                    self.send_request(i)
+                if not self.piece:
+                    self.find_piece()
+                if self.piece:
+                    self.send_request()
 
-            if self.manager.complete():
-                self.manager.write()
 
     def handle(self, message):
         type = message[0]
@@ -110,15 +110,18 @@ class Peer(Thread):
             return
         block = payload[8:]
         self.piece.blocks[int(offset / config.BLOCK_SIZE)] = block
-        self.printo('receive (%i/%i) (%i/%i)' % (int(offset / config.BLOCK_SIZE) + 1, len(self.piece.blocks), i + 1, len(self.manager.pieces)))
+        # self.printo('receive (%i/%i) (%i/%i)' % (int(offset / config.BLOCK_SIZE) + 1, len(self.piece.blocks), i + 1, len(self.manager.pieces)))
         if self.piece.left() == 0:
             if hashlib.sha1(self.piece.data()).digest() == self.manager.tracker.torrent.pieces[i]:
-                self.printo('piece complete %i' % i)
+                self.printo('piece complete (%i/%i)' % (i + 1, len(self.manager.pieces)))
                 self.piece.state['complete'] = True
+                self.piece = None
+                self.manager.write()
             else:
-                self.printo('piece incomplete %i' % i)
+                self.printo('piece incomplete (%i/%i)' % (i + 1, len(self.manager.pieces)))
                 self.piece.blocks = [None] * len(self.piece.blocks)
-                self.piece.state['requesting'] = None
+                self.piece.state['requesting'] = False
+                self.piece = None
                 self.has[i] = False
 
     def send(self, message):
@@ -140,20 +143,20 @@ class Peer(Thread):
         # self.printo('interested')
         self.send(message)
 
-    def send_request(self, i):
-        self.piece = self.manager.pieces[i]
-        self.piece.state['requesting'] = self.id
+    def send_request(self):
         offset = (len(self.piece.blocks) - self.piece.left()) * config.BLOCK_SIZE
-        message = pack('>IBIII', 13, 6, i, offset, config.BLOCK_SIZE)
-        # self.printo('request (%i/%i) (%i/%i)' % (len(self.piece.blocks) - self.piece.left() + 1, len(self.piece.blocks), i + 1, len(self.manager.pieces)))
+        message = pack('>IBIII', 13, 6, self.piece_i, offset, config.BLOCK_SIZE)
+        # self.printo('request (%i/%i) (%i/%i)' % (len(piece.blocks) - piece.left() + 1, len(piece.blocks), i + 1, len(self.manager.pieces)))
         self.send(message)
 
-    def next_available_piece_index(self):
+    def find_piece(self):
         for i, piece in enumerate(self.manager.pieces):
-            if not piece.state['complete'] and (not piece.state['requesting'] or piece == self.piece) and self.has[i]:
-                return i
-        else:
-            return -1
+            if not piece.state['complete'] and not piece.state['requesting'] and self.has[i]:
+                self.printo('request (%i/%i)' % (i + 1, len(self.manager.pieces)))
+                piece.state['requesting'] = True
+                self.piece = piece
+                self.piece_i = i
+                return
 
     def printo(self, message):
         print(self.address[0].ljust(20), message)
