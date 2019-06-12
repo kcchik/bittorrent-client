@@ -8,7 +8,6 @@ import hashlib
 class Peer(Thread):
     def __init__(self, id, manager, address):
         Thread.__init__(self)
-        self.id = id
         self.manager = manager
         self.address = address
         self.socket = socket.socket()
@@ -16,10 +15,8 @@ class Peer(Thread):
         self.has = [False] * len(manager.pieces)
         self.piece = None
         self.piece_i = -1
-        self.state = {
-            'choking': True,
-            'handshake': False,
-        }
+        self.choking = True
+        self.handshake = False
 
     def connect(self):
         try:
@@ -49,7 +46,7 @@ class Peer(Thread):
                 self.disconnect()
                 return
 
-            if len(packet) and not self.state['handshake']:
+            if len(packet) and not self.handshake:
                 packet = self.handle_handshake(packet)
 
             if not len(packet):
@@ -65,7 +62,7 @@ class Peer(Thread):
                 message = messages[4:length + 4]
                 # self.printo('message %s' % message)
                 self.handle(message)
-                if self.state['choking']:
+                if self.choking:
                     self.send_interested()
                 else:
                     if not self.piece:
@@ -80,9 +77,9 @@ class Peer(Thread):
         if len(message) > 1:
             payload = message[1:]
         if type == 0:
-            self.state['choking'] = True
+            self.choking = True
         if type == 1:
-            self.state['choking'] = False
+            self.choking = False
         if type == 2:
             self.printo('interested')
         if type == 3:
@@ -107,7 +104,7 @@ class Peer(Thread):
         if not info_hash == self.manager.tracker.params['info_hash']:
             return b''
         # self.printo('handshake success')
-        self.state['handshake'] = True
+        self.handshake = True
         return packet[pstrlen + 49:]
 
     def handle_have(self, payload):
