@@ -20,10 +20,10 @@ class Manager():
 
     def write(self):
         while self.pieces[self.progress].state['complete']:
-            print('                    writing (%i/%i)' % (self.progress + 1, len(self.pieces)))
+            print('                     writing (%i/%i)' % (self.progress + 1, len(self.pieces)))
             self.file.write(b''.join(self.pieces[self.progress].blocks))
             self.progress += 1
             if self.progress == len(self.pieces):
-                print('                    download complete')
+                print('                     download complete')
                 self.file.close()
-                sys.exit()
+                sys.exit(1)

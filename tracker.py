@@ -1,6 +1,7 @@
 from bencode import bencode, bdecode
 import hashlib
 import requests
+import os
 
 class Tracker:
     def __init__(self, torrent):
@@ -8,7 +9,7 @@ class Tracker:
         self.addresses = []
         self.params = {
             'info_hash': hashlib.sha1(bencode(torrent.info)).digest(),
-            'peer_id': '-KOJI-imatesttorrent',
+            'peer_id': b'--KOJI--' + os.urandom(12),
             'event': 'started',
             'uploaded': 0,
             'downloaded': 0,

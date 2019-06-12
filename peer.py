@@ -12,7 +12,7 @@ class Peer(Thread):
         self.manager = manager
         self.address = address
         self.socket = socket.socket()
-        socket.timeout(10)
+        self.socket.settimeout(10)
         self.has = [False] * len(manager.pieces)
         self.piece = None
         self.piece_i = -1
@@ -29,6 +29,12 @@ class Peer(Thread):
         except OSError as e:
             return False
 
+    def disconnect(self):
+        if self.piece:
+            self.piece.state['requesting'] = False
+        self.socket.close()
+
+
     def run(self):
         if not self.connect():
             return
@@ -39,13 +45,17 @@ class Peer(Thread):
             try:
                 packet = self.socket.recv(4096)
             except OSError as e:
-                self.printo('disconnecting %s' % e)
-                if self.piece:
-                    self.piece.state['requesting'] = False
+                self.printo('disconnected (%s)' % e)
+                self.disconnect()
                 return
 
             if len(packet) and not self.state['handshake']:
                 packet = self.handle_handshake(packet)
+
+            if not len(packet):
+                self.printo('disconnected (empty packet)')
+                self.disconnect()
+                return
 
             messages += packet
             while len(messages) >= 4:
@@ -55,16 +65,14 @@ class Peer(Thread):
                 message = messages[4:length + 4]
                 # self.printo('message %s' % message)
                 self.handle(message)
+                if self.state['choking']:
+                    self.send_interested()
+                else:
+                    if not self.piece:
+                        self.find_piece()
+                    if self.piece:
+                        self.send_request()
                 messages = messages[length + 4:]
-
-            if self.state['choking']:
-                self.send_interested()
-            else:
-                if not self.piece:
-                    self.find_piece()
-                if self.piece:
-                    self.send_request()
-
 
     def handle(self, message):
         type = message[0]
@@ -73,24 +81,32 @@ class Peer(Thread):
             payload = message[1:]
         if type == 0:
             self.state['choking'] = True
-            self.printo('choked')
         if type == 1:
             self.state['choking'] = False
-            self.printo('unchoked')
+        if type == 2:
+            self.printo('interested')
+        if type == 3:
+            self.printo('uninsterested')
         if type == 4:
             self.handle_have(payload)
         if type == 5:
             self.handle_bitfield(payload)
+        if type == 6:
+            self.printo('request')
         if type == 7:
             self.handle_block(payload)
+        if type == 8:
+            self.printo('cancel')
+        if type == 9:
+            self.printo('port')
+
 
     def handle_handshake(self, packet):
         pstrlen = packet[0]
         pstr, reserved, info_hash, peer_id = unpack('>{}s8s20s20s'.format(pstrlen), packet[1:pstrlen + 49])
         if not info_hash == self.manager.tracker.params['info_hash']:
-            self.printo('handshake failed')
             return b''
-        self.printo('handshake received')
+        # self.printo('handshake success')
         self.state['handshake'] = True
         return packet[pstrlen + 49:]
 
@@ -113,12 +129,12 @@ class Peer(Thread):
         # self.printo('receive (%i/%i) (%i/%i)' % (int(offset / config.BLOCK_SIZE) + 1, len(self.piece.blocks), i + 1, len(self.manager.pieces)))
         if self.piece.left() == 0:
             if hashlib.sha1(self.piece.data()).digest() == self.manager.tracker.torrent.pieces[i]:
-                self.printo('piece complete (%i/%i)' % (i + 1, len(self.manager.pieces)))
+                self.printo('complete (%i/%i)' % (i + 1, len(self.manager.pieces)))
                 self.piece.state['complete'] = True
                 self.piece = None
                 self.manager.write()
             else:
-                self.printo('piece incomplete (%i/%i)' % (i + 1, len(self.manager.pieces)))
+                self.printo('failed (%i/%i)' % (i + 1, len(self.manager.pieces)))
                 self.piece.blocks = [None] * len(self.piece.blocks)
                 self.piece.state['requesting'] = False
                 self.piece = None
@@ -134,7 +150,7 @@ class Peer(Thread):
         pstr = b'BitTorrent protocol'
         pstrlen = bytes([len(pstr)])
         reserved = b'\x00' * 8
-        message = pstrlen + pstr + reserved + self.manager.tracker.params['info_hash'] + self.manager.tracker.params['peer_id'].encode('iso-8859-1')
+        message = pstrlen + pstr + reserved + self.manager.tracker.params['info_hash'] + self.manager.tracker.params['peer_id']
         # self.printo('handshake sent')
         self.send(message)
 
@@ -145,8 +161,13 @@ class Peer(Thread):
 
     def send_request(self):
         offset = (len(self.piece.blocks) - self.piece.left()) * config.BLOCK_SIZE
-        message = pack('>IBIII', 13, 6, self.piece_i, offset, config.BLOCK_SIZE)
-        # self.printo('request (%i/%i) (%i/%i)' % (len(piece.blocks) - piece.left() + 1, len(piece.blocks), i + 1, len(self.manager.pieces)))
+        if self.piece_i + 1 == len(self.manager.pieces) and offset + 1 == len(self.piece.blocks):
+            last_piece_length = self.manager.tracker.torrent.length % self.manager.tracker.torrent.piece_length
+            last_block_size = last_piece_length % config.BLOCK_SIZE
+            message = pack('>IBIII', 13, 6, self.piece_i, offset, last_block_size)
+        else:
+            message = pack('>IBIII', 13, 6, self.piece_i, offset, config.BLOCK_SIZE)
+         # self.printo('request (%i/%i) (%i/%i)' % (len(piece.blocks) - piece.left() + 1, len(piece.blocks), i + 1, len(self.manager.pieces)))
         self.send(message)
 
     def find_piece(self):
