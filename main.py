@@ -5,13 +5,15 @@ from os import listdir
 import sys
 
 if __name__ == '__main__':
-    files = [file for file in listdir('torrents/')]
+    files = [file for file in listdir('torrents/') if file != '.DS_Store']
     for i, file in enumerate(files):
         print('%i\t%s' % (i, file))
     path = input()
     torrent = Torrent('torrents/' + files[int(path)])
     print(torrent.name)
     print(torrent.comment)
+    print(torrent.files)
+    print(torrent.piece_length)
 
     tracker = Tracker(torrent)
     tracker.announce()

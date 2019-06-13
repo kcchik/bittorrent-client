@@ -1,1 +1,1 @@
-BLOCK_SIZE = 2 ** 14
+BLOCK_LENGTH = 2 ** 14

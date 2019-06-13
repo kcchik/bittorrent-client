@@ -1,17 +1,19 @@
+import config
+from math import ceil
+
 class Piece():
-    def __init__(self, size):
-        self.blocks = [None] * size
-        self.state = {
-            'complete': False,
-            'requesting': None,
-            'available': False,
-        }
+    def __init__(self, length, last):
+        self.length = length
+        self.blocks = [None] * ceil(length / config.BLOCK_LENGTH)
+        self.complete = False
+        self.requesting = False
+        self.last = last
 
     def left(self):
         left = len(self.blocks)
         for block in self.blocks:
             if block:
-                left = left - 1
+                left -= 1
         return left
 
     def data(self):
