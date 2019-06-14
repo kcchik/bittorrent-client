@@ -1,4 +1,5 @@
 from bencode import bdecode
+import config
 
 class Torrent:
     def __init__(self, path):
@@ -13,7 +14,7 @@ class Torrent:
         self.info = dict['info']
         self.name = self.info['name']
         self.pieces = [self.info['pieces'][i:i + 20] for i in range(0, len(self.info['pieces']), 20)]
-        self.piece_length = self.info['piece length']
+        config.PIECE_LENGTH = self.info['piece length']
         self.files = []
         if 'files' in self.info:
             self.length = 0

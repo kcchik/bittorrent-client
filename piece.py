@@ -2,12 +2,11 @@ import config
 from math import ceil
 
 class Piece():
-    def __init__(self, length, last):
-        self.length = length
-        self.blocks = [None] * ceil(length / config.BLOCK_LENGTH)
+    def __init__(self, piece_hash):
+        self.piece_hash = piece_hash
+        self.blocks = [None] * ceil(config.PIECE_LENGTH / config.BLOCK_LENGTH)
         self.complete = False
         self.requesting = False
-        self.last = last
 
     def left(self):
         left = len(self.blocks)

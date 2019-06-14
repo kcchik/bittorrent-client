@@ -12,11 +12,7 @@ class Peer(Thread):
         self.address = address
         self.socket = socket.socket()
         self.socket.settimeout(10)
-        self.has = []
-        for file in manager.files:
-            for piece in file.pieces:
-                self.has.append(False)
-        self.file = None
+        self.has = [False] * len(manager.pieces)
         self.piece = None
         self.piece_i = -1
         self.choking = True
@@ -117,26 +113,19 @@ class Peer(Thread):
             self.has[i] = available
 
     def handle_block(self, payload):
-        j, offset = unpack('>II', payload[0:8])
-        i = j
-        for file in self.manager.files:
-            if i < len(file.pieces):
-                break
-            i -= len(file.pieces)
-        if not self.piece == file.pieces[i]:
+        i, offset = unpack('>II', payload[0:8])
+        if not self.piece == self.manager.pieces[i]:
             return
         block = payload[8:]
         self.piece.blocks[offset // config.BLOCK_LENGTH] = block
         if self.piece.left() == 0:
-            # self.printo(hashlib.sha1(self.piece.data()).digest())
-            # self.printo(self.manager.tracker.torrent.pieces[j])
-            if hashlib.sha1(self.piece.data()).digest() == self.manager.tracker.torrent.pieces[j]:
-                self.printo('complete (%i/%i)' % (i + 1, len(file.pieces)))
+            if hashlib.sha1(self.piece.data()).digest() == self.manager.tracker.torrent.pieces[i]:
+                self.printo('complete (%i/%i)' % (i + 1, len(self.manager.pieces)))
                 self.piece.complete = True
                 self.piece = None
                 self.manager.write()
             else:
-                self.printo('failed (%i/%i)' % (i + 1, len(file.pieces)))
+                self.printo('failed (%i/%i)' % (i + 1, len(self.manager.pieces)))
                 self.piece.blocks = [None] * len(self.piece.blocks)
                 self.piece.requesting = False
                 self.piece = None
@@ -161,26 +150,19 @@ class Peer(Thread):
 
     def send_request(self):
         block_length = config.BLOCK_LENGTH
-        if self.piece.last and self.piece.left() == 1:
-            block_length = self.piece.length % config.BLOCK_LENGTH
+        if self.piece_i + 1 == len(self.manager.pieces) and self.piece.left() == 1:
+            block_length = self.manager.tracker.torrent.length % config.BLOCK_LENGTH
         block_i = (len(self.piece.blocks) - self.piece.left()) * config.BLOCK_LENGTH
-        # self.printo('piece index  %i' % self.piece_i)
-        # self.printo('block index  %i' % block_i)
-        # self.printo('block length %i' % block_length)
         message = pack('>IBIII', 13, 6, self.piece_i, block_i, block_length)
         self.send(message)
 
     def find_piece(self):
-        i = 0
-        for file in self.manager.files:
-            for k, piece in enumerate(file.pieces):
-                if not piece.requesting and self.has[i]:
-                    piece.requesting = True
-                    self.file = file
-                    self.piece = piece
-                    self.piece_i = i
-                    return
-                i += 1
+        for i, piece in enumerate(self.manager.pieces):
+            if not piece.requesting and self.has[i]:
+                piece.requesting = True
+                self.piece = piece
+                self.piece_i = i
+                return
 
     def printo(self, message):
         print(self.address[0].ljust(20), message)
