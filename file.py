@@ -1,7 +1,4 @@
 import os
-import config
-from piece import Piece
-from math import ceil
 
 class File():
     def __init__(self, file, offset):

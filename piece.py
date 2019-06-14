@@ -1,10 +1,11 @@
+import math
+
 import config
-from math import ceil
 
 class Piece():
     def __init__(self, piece_hash):
         self.piece_hash = piece_hash
-        self.blocks = [None] * ceil(config.PIECE_LENGTH / config.BLOCK_LENGTH)
+        self.blocks = [None] * math.ceil(config.PIECE_LENGTH / config.BLOCK_LENGTH)
         self.complete = False
         self.requesting = False
 

@@ -56,6 +56,7 @@ Enter the id of the torrent you want to download
 ### TODO
 
 * [x] Torrents with multiple files
+* [ ] Kill threads once download is complete
 * [ ] Multiple request threads per peer
 * [ ] Manage inactive peers
     * Wait for failed pieces

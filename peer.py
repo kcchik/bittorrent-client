@@ -1,13 +1,14 @@
-from threading import Thread, active_count
-from struct import pack, unpack
-from bitstring import BitArray
+import threading
 import socket
-import config
 import hashlib
+import struct
+import bitstring
 
-class Peer(Thread):
+import config
+
+class Peer(threading.Thread):
     def __init__(self, manager, address):
-        Thread.__init__(self)
+        threading.Thread.__init__(self)
         self.manager = manager
         self.address = address
         self.socket = socket.socket()
@@ -21,7 +22,7 @@ class Peer(Thread):
     def connect(self):
         try:
             self.socket.connect(self.address)
-            self.printo('connected')
+            # self.printo('connected')
             return True
         except OSError as e:
             return False
@@ -41,7 +42,7 @@ class Peer(Thread):
             try:
                 packet = self.socket.recv(4096)
             except OSError as e:
-                self.printo('disconnected (%s)' % e)
+                # self.printo('disconnected ({})'.format(e))
                 self.disconnect()
                 return
 
@@ -49,13 +50,13 @@ class Peer(Thread):
                 packet = self.handle_handshake(packet)
 
             if not len(packet):
-                self.printo('disconnected (empty packet)')
+                # self.printo('disconnected (empty packet)')
                 self.disconnect()
                 return
 
             messages += packet
             while len(messages) >= 4:
-                length = unpack('>I', messages[0:4])[0]
+                length = struct.unpack('>I', messages[0:4])[0]
                 if length == 0 or len(messages) < length + 4:
                     break
                 message = messages[4:length + 4]
@@ -98,34 +99,34 @@ class Peer(Thread):
 
     def handle_handshake(self, packet):
         pstrlen = packet[0]
-        pstr, reserved, info_hash, peer_id = unpack('>{}s8s20s20s'.format(pstrlen), packet[1:pstrlen + 49])
+        pstr, reserved, info_hash, peer_id = struct.unpack('>{}s8s20s20s'.format(pstrlen), packet[1:pstrlen + 49])
         if not info_hash == self.manager.tracker.params['info_hash']:
             return b''
         self.handshake = True
         return packet[pstrlen + 49:]
 
     def handle_have(self, payload):
-        i = unpack('>I', payload)[0]
+        i = struct.unpack('>I', payload)[0]
         self.has[i] = True
 
     def handle_bitfield(self, payload):
-        for i, available in enumerate(list(BitArray(payload))[0:len(self.has)]):
+        for i, available in enumerate(list(bitstring.BitArray(payload))[0:len(self.has)]):
             self.has[i] = available
 
     def handle_block(self, payload):
-        i, offset = unpack('>II', payload[0:8])
+        i, offset = struct.unpack('>II', payload[0:8])
         if not self.piece == self.manager.pieces[i]:
             return
         block = payload[8:]
         self.piece.blocks[offset // config.BLOCK_LENGTH] = block
         if self.piece.left() == 0:
             if hashlib.sha1(self.piece.data()).digest() == self.manager.tracker.torrent.pieces[i]:
-                self.printo('complete (%i/%i)' % (i + 1, len(self.manager.pieces)))
+                self.printo('✓ {}/{}'.format(i + 1, len(self.manager.pieces)))
                 self.piece.complete = True
                 self.piece = None
                 self.manager.write()
             else:
-                self.printo('failed (%i/%i)' % (i + 1, len(self.manager.pieces)))
+                self.printo('✗ {}/{}'.format(i + 1, len(self.manager.pieces)))
                 self.piece.blocks = [None] * len(self.piece.blocks)
                 self.piece.requesting = False
                 self.piece = None
@@ -145,7 +146,7 @@ class Peer(Thread):
         self.send(message)
 
     def send_interested(self):
-        message = pack('>IB', 1, 2)
+        message = struct.pack('>IB', 1, 2)
         self.send(message)
 
     def send_request(self):
@@ -153,7 +154,7 @@ class Peer(Thread):
         if self.piece_i + 1 == len(self.manager.pieces) and self.piece.left() == 1:
             block_length = self.manager.tracker.torrent.length % config.BLOCK_LENGTH
         block_i = (len(self.piece.blocks) - self.piece.left()) * config.BLOCK_LENGTH
-        message = pack('>IBIII', 13, 6, self.piece_i, block_i, block_length)
+        message = struct.pack('>IBIII', 13, 6, self.piece_i, block_i, block_length)
         self.send(message)
 
     def find_piece(self):

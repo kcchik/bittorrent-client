@@ -1,4 +1,5 @@
-from bencode import bdecode
+import bencode
+
 import config
 
 class Torrent:
@@ -8,7 +9,7 @@ class Torrent:
         except Exception as e:
             print(e)
             return
-        dict = bdecode(bytes(torrent.read()))
+        dict = bencode.bdecode(bytes(torrent.read()))
         self.announce = dict['announce']
         self.comment = dict['comment']
         self.info = dict['info']
