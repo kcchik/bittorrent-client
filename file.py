@@ -5,9 +5,9 @@ class File():
         self.length = file['length']
         self.path = file['path']
         self.offset = offset
-        self.a = 0
         dirname = os.path.dirname(file['path'])
         if dirname:
             os.makedirs(dirname, exist_ok=True)
         self.stream = open('./complete/%s' % file['path'], 'wb')
         self.complete = False
+        self.started = False
