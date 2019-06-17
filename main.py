@@ -1,6 +1,7 @@
 import re
 import os
 
+import config
 from torrent import Torrent
 from tracker import Tracker
 from manager import Manager
@@ -12,10 +13,11 @@ if __name__ == '__main__':
     path = input('\ntorrent: ')
     torrent = Torrent('torrents/' + files[int(path)])
     print('\n' + torrent.comment)
+    print(config.PIECE_LENGTH, torrent.files)
 
-    tracker = Tracker(torrent)
-    tracker.announce()
+    # tracker = Tracker(torrent)
+    # tracker.announce()
 
-    manager = Manager(tracker)
-    manager.start()
+    # manager = Manager(tracker)
+    # manager.start()
     # ⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏

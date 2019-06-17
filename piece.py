@@ -3,8 +3,8 @@ import math
 import config
 
 class Piece():
-    def __init__(self, piece_hash):
-        self.piece_hash = piece_hash
+    def __init__(self, hash):
+        self.hash = hash
         self.blocks = [None] * math.ceil(config.PIECE_LENGTH / config.BLOCK_LENGTH)
         self.complete = False
         self.requesting = False
@@ -16,7 +16,8 @@ class Piece():
                 left -= 1
         return left
 
+    def block_offset(self):
+        return (len(self.blocks) - self.left()) * config.BLOCK_LENGTH
+
     def data(self):
-        if self.left() == 0:
-            return b''.join(self.blocks)
-        return b''
+        return b''.join(self.blocks)
