@@ -146,6 +146,8 @@ class Peer(threading.Thread):
                     piece.requesting = True
                     self.piece = i
                     break
+            else:
+                return # TODO if there are no available pieces to be requested
         self.send_request()
 
     def printo(self, message):
