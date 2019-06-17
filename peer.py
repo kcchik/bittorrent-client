@@ -4,6 +4,7 @@ import hashlib
 import struct
 import bitstring
 import sys
+import time
 
 import config
 
@@ -140,14 +141,15 @@ class Peer(threading.Thread):
         self.send(message)
 
     def find_piece(self):
-        if self.piece == -1:
+        while self.piece == -1:
             for i, piece in enumerate(self.manager.pieces):
                 if not piece.requesting and not piece.complete and self.has[i]:
                     piece.requesting = True
                     self.piece = i
                     break
-            else:
-                return # TODO if there are no available pieces to be requested
+            if not any(not file.complete for file in self.manager.files):
+                self.disconnect()
+            time.sleep(0.1)
         self.send_request()
 
     def printo(self, message):

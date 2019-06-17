@@ -56,14 +56,10 @@ Enter the id of the torrent you want to download
 ### TODO
 
 * [x] Torrents with multiple files
-* [ ] Send pieces
-* [ ] Kill threads once download is complete
-* [ ] Multiple request threads per peer
-* [ ] Manage inactive peers
-    * Wait for failed pieces
-    * Request pending pieces
+* [x] Manage inactive peers
 * [ ] Incomplete torrents
     * Pause/resume
     * Write to offset instead of append
     * Request pieces again
-* [ ] Refactor everything lol
+* [ ] Multiple request threads per peer
+* [ ] Send pieces

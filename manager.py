@@ -27,20 +27,20 @@ class Manager():
             time.sleep(0.1)
             for file in self.files:
                 self.write(file)
-        print('manager'.ljust(20), 'done!')
+        print(''.ljust(20), 'done!')
 
     def write(self, file):
         while not file.complete:
             if not self.pieces[self.progress].complete:
                 return
-            print('manager'.ljust(20), ('… {}/{}'.format(self.progress + 1, len(self.pieces))).ljust(15), file.path)
+            print(''.ljust(20), ('… {}/{}'.format(self.progress + 1, len(self.pieces))).ljust(15), file.path)
             data = self.pieces[self.progress].data()
             if self.progress == int(file.offset / config.PIECE_LENGTH):
                 piece_length = file.offset % config.PIECE_LENGTH
                 file.stream.write(data[:piece_length])
                 if piece_length > 0:
                     self.initial = data[piece_length:]
-                print('manager'.ljust(20), '🎉'.ljust(14), file.path)
+                print(''.ljust(20), '🎉'.ljust(14), file.path)
                 file.stream.close()
                 file.complete = True
                 break
