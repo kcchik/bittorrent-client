@@ -57,6 +57,8 @@ Enter the id of the torrent you want to download
 
 * [x] Torrents with multiple files
 * [x] Manage inactive peers
+* [ ] Scrape nyaa.si RSS
+* [ ] Magnet links
 * [ ] Incomplete torrents
     * Pause/resume
     * Write to offset instead of append

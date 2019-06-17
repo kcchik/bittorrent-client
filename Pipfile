@@ -9,6 +9,7 @@ verify_ssl = true
 bencode-py = "*"
 requests = "*"
 bitstring = "*"
+feedparser = "*"
 
 [requires]
 python_version = "3.7"
