@@ -16,26 +16,26 @@ class Peer(threading.Thread):
         self.socket.settimeout(10)
         self.handshake = False
         self.choking = True
+        self.connected = True
         self.has = [False] * len(manager.pieces)
         self.piece = -1
 
     def connect(self):
         try:
             self.socket.connect(self.address)
-            return True
         except OSError as e:
-            return False
+            self.disconnect()
 
     def disconnect(self):
-        self.manager.pieces[self.piece].requesting = False
+        if self.piece != -1:
+            self.manager.pieces[self.piece].requesting = False
         self.socket.close()
+        self.connected = False
         sys.exit()
 
     def run(self):
-        if not self.connect():
-            sys.exit()
+        self.connect()
         self.send_handshake()
-
         messages = b''
         while True:
             try:
@@ -63,16 +63,18 @@ class Peer(threading.Thread):
         payload = b''
         if len(message) > 1:
             payload = message[1:]
+
         if type == 0:
             self.choking = True
-        if type == 1:
+        elif type == 1:
             self.choking = False
-        if type == 4:
+        elif type == 4:
             self.handle_have(payload)
-        if type == 5:
+        elif type == 5:
             self.handle_bitfield(payload)
-        if type == 7:
+        elif type == 7:
             self.handle_block(payload)
+
         if self.choking:
             self.send_interested()
         else:
@@ -80,8 +82,8 @@ class Peer(threading.Thread):
 
     def handle_handshake(self, packet):
         pstrlen = packet[0]
-        pstr, reserved, info_hash, peer_id = struct.unpack('>{}s8s20s20s'.format(pstrlen), packet[1:pstrlen + 49])
-        if not info_hash == self.manager.tracker.params['info_hash']:
+        info_hash = struct.unpack('>20s', packet[pstrlen + 9:pstrlen + 29])[0]
+        if info_hash != self.manager.tracker.params['info_hash']:
             self.disconnect()
         self.handshake = True
         return packet[pstrlen + 49:]
@@ -97,15 +99,14 @@ class Peer(threading.Thread):
     def handle_block(self, payload):
         i, offset = struct.unpack('>II', payload[:8])
         block = payload[8:]
-        if not self.piece == i:
+        if self.piece != i:
             return
-        piece = self.manager.pieces[self.piece]
+        piece = self.manager.pieces[i]
         piece.blocks[offset // config.BLOCK_LENGTH] = block
         if piece.left() == 0:
             if hashlib.sha1(piece.data()).digest() == piece.hash:
                 self.printo('\033[92m✓\033[0m {}/{}'.format(i + 1, len(self.manager.pieces)))
                 piece.complete = True
-                self.manager.write()
             else:
                 self.printo('\033[91m✗\033[0m {}/{}'.format(i + 1, len(self.manager.pieces)))
                 piece.blocks = [None] * len(piece.blocks)
@@ -132,23 +133,20 @@ class Peer(threading.Thread):
 
     def send_request(self):
         piece = self.manager.pieces[self.piece]
+        block_length = config.BLOCK_LENGTH
         if self.piece + 1 == len(self.manager.pieces) and piece.left() == 1:
             block_length = self.manager.tracker.torrent.length % config.BLOCK_LENGTH
-        else:
-            block_length = config.BLOCK_LENGTH
         message = struct.pack('>IBIII', 13, 6, self.piece, piece.block_offset(), block_length)
         self.send(message)
 
     def find_piece(self):
-        if not self.piece == -1:
-            self.send_request()
-            return
-        for i, piece in enumerate(self.manager.pieces):
-            if not piece.requesting and not piece.complete and self.has[i]:
-                piece.requesting = True
-                self.piece = i
-                self.send_request()
-                return
+        if self.piece == -1:
+            for i, piece in enumerate(self.manager.pieces):
+                if not piece.requesting and not piece.complete and self.has[i]:
+                    piece.requesting = True
+                    self.piece = i
+                    break
+        self.send_request()
 
     def printo(self, message):
         print(self.address[0].ljust(20), message)

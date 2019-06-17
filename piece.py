@@ -15,6 +15,7 @@ class Piece():
             if block:
                 left -= 1
         return left
+        # return sum(1 for block in self.blocks if block == None)
 
     def block_offset(self):
         return (len(self.blocks) - self.left()) * config.BLOCK_LENGTH

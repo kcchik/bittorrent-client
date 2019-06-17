@@ -1,4 +1,5 @@
 import math
+import time
 
 import config
 from peer import Peer
@@ -22,6 +23,10 @@ class Manager():
     def start(self):
         for peer in self.peers:
             peer.start()
+        while any(not file.complete for file in self.files) and any(peer for peer in self.peers if peer.connected):
+            time.sleep(0.1)
+            self.write()
+        print(''.ljust(20), 'done!')
 
     def write(self):
         for file in self.files:
@@ -32,14 +37,11 @@ class Manager():
                 data = self.pieces[self.progress].data()
                 if self.progress == int(file.offset / config.PIECE_LENGTH):
                     file.stream.write(data[:file.offset % config.PIECE_LENGTH])
-                    file.a += len(data[:file.offset % config.PIECE_LENGTH])
                     if file.offset % config.PIECE_LENGTH > 0:
                         self.initial = data[file.offset % config.PIECE_LENGTH:]
                     print(''.ljust(20), '🎉'.ljust(14), file.path)
                     file.stream.close()
                     file.complete = True
-                    if not any(not file.complete for file in self.files):
-                        print(''.ljust(20), 'done!')
                     break
                 if not file.started or file.offset != file.length:
                     data = self.initial
