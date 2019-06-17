@@ -25,27 +25,28 @@ class Manager():
             peer.start()
         while any(not file.complete for file in self.files) and any(peer for peer in self.peers if peer.connected):
             time.sleep(0.1)
-            self.write()
-        print(''.ljust(20), 'done!')
+            for file in self.files:
+                self.write(file)
+        print('manager'.ljust(20), 'done!')
 
-    def write(self):
-        for file in self.files:
-            while not file.complete:
-                if not self.pieces[self.progress].complete:
-                    return
-                print(''.ljust(20), ('… {}/{}'.format(self.progress + 1, len(self.pieces))).ljust(15), file.path)
-                data = self.pieces[self.progress].data()
-                if self.progress == int(file.offset / config.PIECE_LENGTH):
-                    file.stream.write(data[:file.offset % config.PIECE_LENGTH])
-                    if file.offset % config.PIECE_LENGTH > 0:
-                        self.initial = data[file.offset % config.PIECE_LENGTH:]
-                    print(''.ljust(20), '🎉'.ljust(14), file.path)
-                    file.stream.close()
-                    file.complete = True
-                    break
-                if not file.started or file.offset != file.length:
-                    data = self.initial
-                    self.initial = b''
-                    file.started = True
-                file.stream.write(data)
-                self.progress += 1
+    def write(self, file):
+        while not file.complete:
+            if not self.pieces[self.progress].complete:
+                return
+            print('manager'.ljust(20), ('… {}/{}'.format(self.progress + 1, len(self.pieces))).ljust(15), file.path)
+            data = self.pieces[self.progress].data()
+            if self.progress == int(file.offset / config.PIECE_LENGTH):
+                piece_length = file.offset % config.PIECE_LENGTH
+                file.stream.write(data[:piece_length])
+                if piece_length > 0:
+                    self.initial = data[piece_length:]
+                print('manager'.ljust(20), '🎉'.ljust(14), file.path)
+                file.stream.close()
+                file.complete = True
+                break
+            if not file.started or file.offset != file.length:
+                data = self.initial
+                self.initial = b''
+                file.started = True
+            file.stream.write(data)
+            self.progress += 1
