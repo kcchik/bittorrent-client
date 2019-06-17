@@ -13,11 +13,11 @@ if __name__ == '__main__':
     path = input('\ntorrent: ')
     torrent = Torrent('torrents/' + files[int(path)])
     print('\n' + torrent.comment)
-    print(config.PIECE_LENGTH, torrent.files)
+    print(config.PIECE_LENGTH, [file['length'] for file in torrent.files])
 
-    # tracker = Tracker(torrent)
-    # tracker.announce()
+    tracker = Tracker(torrent)
+    tracker.announce()
 
-    # manager = Manager(tracker)
-    # manager.start()
+    manager = Manager(tracker)
+    manager.start()
     # ⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏

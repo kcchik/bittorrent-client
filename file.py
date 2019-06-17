@@ -1,9 +1,11 @@
 import os
 
 class File():
-    def __init__(self, file):
+    def __init__(self, file, offset):
         self.length = file['length']
         self.path = file['path']
+        self.offset = offset
+        self.a = 0
         dirname = os.path.dirname(file['path'])
         if dirname:
             os.makedirs(dirname, exist_ok=True)

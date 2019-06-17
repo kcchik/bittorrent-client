@@ -24,7 +24,7 @@ class Tracker:
                 peers = value
             if key == 'failure reason':
                 raise Exception(value)
-        peers = [peers[i:i + 6] for i in range(0, len(peers), 6)] # split into 6 byte parts
+        peers = [peers[i:i + 6] for i in range(0, len(peers), 6)]
         for peer in peers:
             ip = '.'.join(str(i) for i in peer[:4])
             port = int.from_bytes(peer[-2:], 'big')
