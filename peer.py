@@ -5,6 +5,7 @@ import struct
 import bitstring
 import sys
 import time
+import bencode
 
 import config
 
@@ -20,6 +21,10 @@ class Peer(threading.Thread):
         self.connected = True
         self.has = [False] * len(manager.pieces)
         self.piece = -1
+
+        self.metadata_id = -1
+        self.metadata_size = 0
+        self.asd = False
 
     def connect(self):
         try:
@@ -75,11 +80,17 @@ class Peer(threading.Thread):
             self.handle_bitfield(payload)
         elif type == 7:
             self.handle_block(payload)
+        elif type == 20:
+            self.handle_extension(payload)
 
-        if self.choking:
-            self.send_interested()
-        else:
-            self.find_piece()
+        if self.metadata_id != -1 and not self.asd:
+            self.send_metadata_request()
+            self.asd = True
+
+        # if self.choking:
+        #     self.send_interested()
+        # else:
+        #     self.find_piece()
 
     def handle_handshake(self, packet):
         pstrlen = packet[0]
@@ -115,6 +126,22 @@ class Peer(threading.Thread):
             self.piece = -1
             piece.requesting = False
 
+    def handle_extension(self, payload):
+        type = payload[0]
+        self.printo(payload)
+        if type == 0:
+            dict = bencode.bdecode(payload[1:])
+            for key, value in dict.items():
+                if key == 'm':
+                    for k, v in value.items():
+                        if k == 'ut_metadata':
+                            self.metadata_id = v
+                if key == 'metadata_size':
+                    self.metadata_size = value
+        if type == self.metadata_id:
+            # dict = bencode.bdecode(payload[1:])
+            self.printo(payload[1:])
+
     def send(self, message):
         try:
             self.socket.send(message)
@@ -124,8 +151,17 @@ class Peer(threading.Thread):
     def send_handshake(self):
         pstr = b'BitTorrent protocol'
         pstrlen = bytes([len(pstr)])
-        reserved = b'\x00' * 8
+        reserved = b'\x00\x00\x00\x00\x00\x10\x00\x00'
         message = pstrlen + pstr + reserved + self.manager.tracker.info_hash + self.manager.tracker.peer_id
+        self.send(message)
+
+    def send_metadata_request(self):
+        dict = bencode.bencode({
+            'msg_type': 0,
+            'piece': 0,
+        })
+        message = struct.pack('>IBB', len(dict) + 2, 20, self.metadata_id) + dict
+        self.printo(message)
         self.send(message)
 
     def send_interested(self):
