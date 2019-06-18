@@ -84,7 +84,7 @@ class Peer(threading.Thread):
     def handle_handshake(self, packet):
         pstrlen = packet[0]
         info_hash = struct.unpack('>20s', packet[pstrlen + 9:pstrlen + 29])[0]
-        if info_hash != self.manager.tracker.params['info_hash']:
+        if info_hash != self.manager.tracker.info_hash:
             self.disconnect()
         self.handshake = True
         return packet[pstrlen + 49:]
@@ -125,7 +125,7 @@ class Peer(threading.Thread):
         pstr = b'BitTorrent protocol'
         pstrlen = bytes([len(pstr)])
         reserved = b'\x00' * 8
-        message = pstrlen + pstr + reserved + self.manager.tracker.params['info_hash'] + self.manager.tracker.params['peer_id']
+        message = pstrlen + pstr + reserved + self.manager.tracker.info_hash + self.manager.tracker.peer_id
         self.send(message)
 
     def send_interested(self):

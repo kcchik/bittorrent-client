@@ -6,18 +6,19 @@ import os
 class Tracker:
     def __init__(self, torrent):
         self.torrent = torrent
+        self.info_hash = b''
+        self.peer_id = b'--KOJI--' + os.urandom(12)
         self.addresses = []
-        self.params = {
-            'info_hash': hashlib.sha1(bencode.bencode(torrent.info)).digest(),
-            'peer_id': b'--KOJI--' + os.urandom(12),
+
+    def announce(self, url):
+        params = {
+            'info_hash': self.info_hash,
+            'peer_id': self.peer_id,
             'event': 'started',
             'uploaded': 0,
             'downloaded': 0,
-            'left': torrent.length,
         }
-
-    def announce(self):
-        response = requests.get(url=self.torrent.announce, params=self.params)
+        response = requests.get(url=url, params=params)
         response = bencode.bdecode(response.content)
         for key, value in response.items():
             if key == 'peers':

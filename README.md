@@ -57,9 +57,7 @@ Enter the id of the torrent you want to download
 
 * [x] Torrents with multiple files
 * [x] Manage inactive peers
-* [ ] Good CLI
-* [ ] Scrape nyaa.si RSS
 * [ ] Magnet links
 * [ ] Incomplete torrents
-* [ ] Multiple request threads per peer
+* [ ] Multiple requests
 * [ ] Send pieces
