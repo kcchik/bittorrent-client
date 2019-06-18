@@ -24,7 +24,7 @@ class Peer(threading.Thread):
 
         self.metadata_id = -1
         self.metadata_size = 0
-        self.asd = False
+        self.asd = -2
 
     def connect(self):
         try:
@@ -83,9 +83,9 @@ class Peer(threading.Thread):
         elif type == 20:
             self.handle_extension(payload)
 
-        if self.metadata_id != -1 and not self.asd:
+        if self.metadata_id != -1 and self.asd >= 0:
             self.send_metadata_request()
-            self.asd = True
+            self.asd = -1
 
         # if self.choking:
         #     self.send_interested()
@@ -99,6 +99,22 @@ class Peer(threading.Thread):
             self.disconnect()
         self.handshake = True
         return packet[pstrlen + 49:]
+
+     def handle_extension(self, payload):
+        type = payload[0]
+        self.printo(payload)
+        if self.asd == -2:
+            dict = bencode.bdecode(payload[1:])
+            for key, value in dict.items():
+                if key == 'm':
+                    for k, v in value.items():
+                        if k == 'ut_metadata':
+                            self.metadata_id = v
+                if key == 'metadata_size':
+                    self.metadata_size = value
+        # else:
+            # dict = bencode.bdecode(payload[1:])
+            # self.printo(payload[1:])
 
     def handle_have(self, payload):
         i = struct.unpack('>I', payload)[0]
@@ -126,22 +142,6 @@ class Peer(threading.Thread):
             self.piece = -1
             piece.requesting = False
 
-    def handle_extension(self, payload):
-        type = payload[0]
-        self.printo(payload)
-        if type == 0:
-            dict = bencode.bdecode(payload[1:])
-            for key, value in dict.items():
-                if key == 'm':
-                    for k, v in value.items():
-                        if k == 'ut_metadata':
-                            self.metadata_id = v
-                if key == 'metadata_size':
-                    self.metadata_size = value
-        if type == self.metadata_id:
-            # dict = bencode.bdecode(payload[1:])
-            self.printo(payload[1:])
-
     def send(self, message):
         try:
             self.socket.send(message)
@@ -161,7 +161,6 @@ class Peer(threading.Thread):
             'piece': 0,
         })
         message = struct.pack('>IBB', len(dict) + 2, 20, self.metadata_id) + dict
-        self.printo(message)
         self.send(message)
 
     def send_interested(self):
