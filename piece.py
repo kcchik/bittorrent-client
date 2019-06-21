@@ -3,22 +3,17 @@ import math
 import config
 
 class Piece():
-    def __init__(self, hash):
-        self.hash = hash
-        self.blocks = [None] * math.ceil(config.PIECE_LENGTH / config.BLOCK_LENGTH)
+    def __init__(self, value=b''):
+        self.value = value
+        self.blocks = [None] * math.ceil(config.piece_length / config.block_length)
         self.complete = False
         self.requesting = False
 
     def left(self):
-        left = len(self.blocks)
-        for block in self.blocks:
-            if block:
-                left -= 1
-        return left
-        # return sum(1 for block in self.blocks if block == None)
+        return sum(1 for block in self.blocks if not block)
 
     def block_offset(self):
-        return (len(self.blocks) - self.left()) * config.BLOCK_LENGTH
+        return (len(self.blocks) - self.left()) * config.block_length
 
     def data(self):
         return b''.join(self.blocks)

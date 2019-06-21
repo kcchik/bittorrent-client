@@ -1,0 +1,35 @@
+#!/usr/bin/env pipenv run python
+
+import os
+import sys
+import hashlib
+import bencode
+
+import config
+from cli import Cli
+from magnet import Magnet
+from torrent import Torrent
+from tracker import Tracker
+from manager import Manager
+
+if __name__ == '__main__':
+        cli = Cli(sys.argv)
+        arg = cli.parse()
+
+        if config.is_magnet:
+            magnet = Magnet(arg)
+            url = magnet.announce
+            info = None
+            info_hash = magnet.info_hash
+        else:
+            torrent = Torrent(arg)
+            url = torrent.announce
+            info = torrent.info
+            info_hash = hashlib.sha1(bencode.bencode(info)).digest()
+
+        tracker = Tracker(info_hash)
+        tracker.announce(url)
+        manager = Manager(tracker)
+        if not config.is_magnet:
+            manager.info(info)
+        manager.start()
