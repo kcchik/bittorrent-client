@@ -1,2 +1,3 @@
-BLOCK_LENGTH = 2 ** 14
-PIECE_LENGTH = 0
+block_length = 2 ** 14
+piece_length = 0
+is_magnet = False

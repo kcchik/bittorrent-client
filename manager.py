@@ -1,5 +1,7 @@
 import math
 import time
+import bencode
+import socket
 
 import config
 from peer import Peer
@@ -9,44 +11,75 @@ from file import File
 class Manager():
     def __init__(self, tracker):
         self.tracker = tracker
-        self.progress = 0
-        self.initial = b''
-        self.files = []
-        offset = 0
-        for file in tracker.torrent.files:
-            offset += file['length']
-            self.files.append(File(file, offset))
-        self.pieces = [Piece(piece_hash) for piece_hash in tracker.torrent.pieces]
-        self.pieces[len(tracker.torrent.pieces) - 1].blocks = [None] * math.ceil(tracker.torrent.length % config.PIECE_LENGTH / config.BLOCK_LENGTH)
+        self.has_info = False
+        self.length = 0
         self.peers = [Peer(self, address) for address in tracker.addresses]
+        self.files = []
+        self.pieces = []
+        self.metadata_pieces = []
+
+    def info(self, info):
+        config.piece_length = info['piece length']
+        if 'files' in info:
+            for file in info['files']:
+                self.length += file['length']
+                self.files.append(File(file['length'], file['path'][0], self.length))
+        else:
+            self.length = info['length']
+            self.files = [File(self.length, info['name'], self.length)]
+        piece_hashes = [info['pieces'][i:i + 20] for i in range(0, len(info['pieces']), 20)]
+        self.pieces = [Piece(piece_hash) for piece_hash in piece_hashes]
+        self.pieces[-1].blocks = [None] * math.ceil(self.length % config.piece_length / config.block_length)
+        self.has_info = True
+        for i, peer in enumerate(self.peers):
+            if not peer.state['connected']:
+                self.peers[i] = Peer(self, self.tracker.addresses[i])
+                self.peers[i].start()
+
 
     def start(self):
         for peer in self.peers:
             peer.start()
-        while any(not file.complete for file in self.files) and any(peer for peer in self.peers if peer.connected):
+
+        while config.is_magnet and not self.has_info:
+            time.sleep(0.1)
+            if self.metadata_pieces:
+                for i, piece in enumerate(self.metadata_pieces):
+                    if not piece.value:
+                        break
+                else:
+                    info = bencode.bdecode(b''.join([piece.value for piece in self.metadata_pieces]))
+                    self.info(info)
+
+        progress = 0
+        leftovers = b''
+        while any(not file.complete for file in self.files) and any(peer for peer in self.peers if peer.state['connected']):
             time.sleep(0.1)
             for file in self.files:
-                self.write(file)
-        print(''.ljust(20), 'done!')
+                progress, leftovers = self.write(file, progress, leftovers)
+        print(''.ljust(20), 'Done!')
 
-    def write(self, file):
+    def write(self, file, progress, leftovers):
         while not file.complete:
-            if not self.pieces[self.progress].complete:
-                return
-            print(''.ljust(20), ('… {}/{}'.format(self.progress + 1, len(self.pieces))).ljust(15), file.path)
-            data = self.pieces[self.progress].data()
-            if self.progress == int(file.offset / config.PIECE_LENGTH):
-                piece_length = file.offset % config.PIECE_LENGTH
+            if not self.pieces[progress].complete:
+                return progress, leftovers
+
+            print(''.ljust(20), ('… {}/{}'.format(progress + 1, len(self.pieces))).ljust(15), file.path)
+            data = self.pieces[progress].data()
+            if progress == int(file.offset / config.piece_length):
+                piece_length = file.offset % config.piece_length
                 file.stream.write(data[:piece_length])
                 if piece_length > 0:
-                    self.initial = data[piece_length:]
+                    leftovers = data[piece_length:]
                 print(''.ljust(20), '🎉'.ljust(14), file.path)
                 file.stream.close()
                 file.complete = True
-                break
+                return (progress, leftovers)
+
             if not file.started or file.offset != file.length:
-                data = self.initial
-                self.initial = b''
+                data = leftovers
+                leftovers = b''
                 file.started = True
             file.stream.write(data)
-            self.progress += 1
+            progress += 1
+        return progress, leftovers

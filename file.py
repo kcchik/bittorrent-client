@@ -1,13 +1,13 @@
 import os
 
 class File():
-    def __init__(self, file, offset):
-        self.length = file['length']
-        self.path = file['path']
+    def __init__(self, length, path, offset):
+        self.length = length
+        self.path = './complete/' + path
         self.offset = offset
-        dirname = os.path.dirname(file['path'])
+        dirname = os.path.dirname(self.path)
         if dirname:
             os.makedirs(dirname, exist_ok=True)
-        self.stream = open('./complete/%s' % file['path'], 'wb')
+        self.stream = open(self.path, 'wb')
         self.complete = False
         self.started = False

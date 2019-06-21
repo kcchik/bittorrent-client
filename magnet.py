@@ -1,9 +1,16 @@
 import urllib.parse
-# magnet:?xt=urn:btih:303e85c5c8b22c6e57795e6487835c43cafd23c1&
-# dn=%5Bmeep%5D%20No%20Game%20No%20Life%20Vol%201-6%20Light%20Novel&
-# tr=http%3A%2F%2Fnyaa.tracker.wf%3A7777%2Fannounce&
-# tr=udp%3A%2F%2Fopen.stealth.si%3A80%2Fannounce&
-# tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&
-# tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969%2Fannounce&
-# tr=udp%3A%2F%2Fexodus.desync.com%3A6969%2Fannounce
-print(urllib)
+import sys
+import re
+
+class Magnet():
+    def __init__(self, url):
+        regex = re.compile('magnet:.+$')
+        if not regex.match(url):
+            print('Not a magnet link')
+            sys.exit()
+        params = urllib.parse.parse_qs(url[8:])
+        if not 'xt' in params or not 'tr' in params:
+            print('Invalid magnet link')
+            sys.exit()
+        self.info_hash = bytes(bytearray.fromhex(params['xt'][0][9:]))
+        self.announce = params['tr'][0]

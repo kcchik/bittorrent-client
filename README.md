@@ -57,7 +57,9 @@ Enter the id of the torrent you want to download
 
 * [x] Torrents with multiple files
 * [x] Manage inactive peers
-* [ ] Magnet links
+* [x] Magnet links
 * [ ] Incomplete torrents
 * [ ] Multiple requests
 * [ ] Send pieces
+
+⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏
