@@ -1,5 +1,4 @@
 #!/usr/bin/env pipenv run python
-
 import os
 import sys
 import hashlib
@@ -21,11 +20,15 @@ if __name__ == '__main__':
             url = magnet.announce
             info = None
             info_hash = magnet.info_hash
+            name = magnet.name
         else:
             torrent = Torrent(arg)
             url = torrent.announce
             info = torrent.info
             info_hash = hashlib.sha1(bencode.bencode(info)).digest()
+            name = info['name']
+
+        print('\033[1m{}\033[0m'.format(name))
 
         tracker = Tracker(info_hash)
         tracker.announce(url)

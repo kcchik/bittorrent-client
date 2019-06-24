@@ -12,5 +12,6 @@ class Magnet():
         if not 'xt' in params or not 'tr' in params:
             print('Invalid magnet link')
             sys.exit()
+        self.name = params['dn'][0]
         self.info_hash = bytes(bytearray.fromhex(params['xt'][0][9:]))
         self.announce = params['tr'][0]

@@ -9,6 +9,7 @@ import bencode
 import math
 
 import config
+import cli
 from piece import Piece
 
 class Peer(threading.Thread):
@@ -74,7 +75,7 @@ class Peer(threading.Thread):
         if len(message) > 1:
             payload = message[1:]
 
-        # self.printo('Type {}'.format(type))
+        # cli.printf('Type {}'.format(type), prefix=self.address[0])
 
         if type == 0:
             self.state['choking'] = True
@@ -96,10 +97,10 @@ class Peer(threading.Thread):
         pstrlen = packet[0]
         info_hash = struct.unpack('>20s', packet[pstrlen + 9:pstrlen + 29])[0]
         if info_hash != self.manager.tracker.info_hash:
-            self.printo('Info hashes do not match')
+            cli.printf('Info hashes do not match', prefix=self.address[0])
             self.disconnect()
         self.state['handshake'] = True
-        # self.printo('Handshake')
+        # cli.printf('Handshake', prefix=self.address[0])
         return packet[pstrlen + 49:]
 
     def handle_metadata_handshake(self, payload):
@@ -121,11 +122,11 @@ class Peer(threading.Thread):
         self.metadata_piece_index = metadata['piece']
         piece = self.manager.metadata_pieces[self.metadata_piece_index]
         if metadata_type == 1 and not piece.complete:
-            self.printo('\033[92m𝑖\033[0m {}/{}'.format(self.metadata_piece_index + 1, len(self.manager.metadata_pieces)))
+            cli.printf('\033[92m𝑖\033[0m {}/{}'.format(self.metadata_piece_index + 1, len(self.manager.metadata_pieces)), prefix=self.address[0])
             piece.value = payload[i:]
             piece.complete = True
         else:
-            self.printo('\033[91m𝑖\033[0m {}/{}'.format(self.metadata_piece_index + 1, len(self.manager.metadata_pieces)))
+            cli.printf('\033[91m𝑖\033[0m {}/{}'.format(self.metadata_piece_index + 1, len(self.manager.metadata_pieces)), prefix=self.address[0])
         self.metadata_piece_index = -1
 
     def handle_have(self, payload):
@@ -145,10 +146,10 @@ class Peer(threading.Thread):
         piece.blocks[offset // config.block_length] = block
         if piece.left() == 0:
             if hashlib.sha1(piece.data()).digest() == piece.value:
-                self.printo('\033[92m✓\033[0m {}/{}'.format(i + 1, len(self.manager.pieces)))
+                cli.printf('\033[92m✓\033[0m {}/{}'.format(i + 1, len(self.manager.pieces)), prefix=self.address[0])
                 piece.complete = True
             else:
-                self.printo('\033[91m✗\033[0m {}/{}'.format(i + 1, len(self.manager.pieces)))
+                cli.printf('\033[91m✗\033[0m {}/{}'.format(i + 1, len(self.manager.pieces)), prefix=self.address[0])
                 piece.blocks = [None] * len(piece.blocks)
                 self.has.remove(i)
             self.piece_index = -1
@@ -207,6 +208,3 @@ class Peer(threading.Thread):
             block_length = self.manager.length % config.block_length
         message = struct.pack('>IBIII', 13, 6, self.piece_index, piece.block_offset(), block_length)
         self.send(message)
-
-    def printo(self, message):
-        print(self.address[0].ljust(20), message)
