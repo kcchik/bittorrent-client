@@ -4,6 +4,7 @@ import bencode
 import socket
 
 import config
+import cli
 from peer import Peer
 from piece import Piece
 from file import File
@@ -17,6 +18,7 @@ class Manager():
         self.files = []
         self.pieces = []
         self.metadata_pieces = []
+        self.spinner = cli.spinner()
 
     def info(self, info):
         config.piece_length = info['piece length']
@@ -38,6 +40,8 @@ class Manager():
 
 
     def start(self):
+        if not config.verbose:
+            self.spinner.start()
         for peer in self.peers:
             peer.start()
 
@@ -57,21 +61,26 @@ class Manager():
             time.sleep(0.1)
             for file in self.files:
                 progress, leftovers = self.write(file, progress, leftovers)
-        print(''.ljust(20), 'Done!')
+        cli.printf('🎉')
 
     def write(self, file, progress, leftovers):
         while not file.complete:
             if not self.pieces[progress].complete:
                 return progress, leftovers
 
-            print(''.ljust(20), ('… {}/{}'.format(progress + 1, len(self.pieces))).ljust(15), file.path)
+            cli.printf(('… {}/{}'.format(progress + 1, len(self.pieces))).ljust(15) + file.path)
+            if not config.verbose:
+                if not self.spinner.event.is_set():
+                    self.spinner.event.set()
+                    print('\r\033[92m✔\033[0m Connected!')
+                cli.loading(progress + 1, len(self.pieces))
             data = self.pieces[progress].data()
             if progress == int(file.offset / config.piece_length):
                 piece_length = file.offset % config.piece_length
                 file.stream.write(data[:piece_length])
                 if piece_length > 0:
                     leftovers = data[piece_length:]
-                print(''.ljust(20), '🎉'.ljust(14), file.path)
+                cli.printf('Complete'.ljust(14) + file.path)
                 file.stream.close()
                 file.complete = True
                 return (progress, leftovers)
