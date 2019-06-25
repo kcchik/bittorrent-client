@@ -71,11 +71,10 @@ class Peer(threading.Thread):
 
     def handle(self, message):
         type = message[0]
+        # cli.printf('Type {}'.format(type), prefix=self.address[0])
         payload = b''
         if len(message) > 1:
             payload = message[1:]
-
-        # cli.printf('Type {}'.format(type), prefix=self.address[0])
 
         if type == 0:
             self.state['choking'] = True
@@ -192,6 +191,7 @@ class Peer(threading.Thread):
         message = struct.pack('>IB', 1, 2)
         self.send(message)
 
+    # TODO piece/block management happens here
     def send_request(self):
         while self.piece_index == -1:
             for i, piece in enumerate(self.manager.pieces):

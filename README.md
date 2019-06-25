@@ -10,14 +10,14 @@ BitTorrent Client for [nyaa.si](https://nyaa.si/)
 ### Installation
 
 Clone this repo
-```shell
+```sh
 git clone https://github.com/kcchik/koji.git
 
 cd koji
 ```
 
 Start shell and install dependencies
-```shell
+```sh
 # must run/develop in pipenv
 pipenv shell
 
@@ -43,6 +43,7 @@ koji [options] <command> [<args>]
 * [x] Torrents with multiple files
 * [x] Manage inactive peers (wait for piece to become available)
 * [x] Magnet links
+* [ ] Piece management
 * [ ] Incomplete torrents
 * [ ] Multiple requests
 * [ ] Send pieces
