@@ -200,9 +200,10 @@ class Peer(threading.Thread):
                     piece.requesting = True
                     self.piece_index = i
                     break
+            else:
+                time.sleep(0.1)
             if not any(not file.complete for file in self.manager.files):
                 self.disconnect()
-            time.sleep(0.1)
         piece = self.manager.pieces[self.piece_index]
         block_length = config.block_length
         if self.piece_index + 1 == len(self.manager.pieces) and piece.left() == 1:

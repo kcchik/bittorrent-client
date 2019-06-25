@@ -12,13 +12,13 @@ from file import File
 class Manager():
     def __init__(self, tracker):
         self.tracker = tracker
+        self.spinner = cli.spinner()
         self.has_info = False
         self.length = 0
         self.peers = [Peer(self, address) for address in tracker.addresses]
         self.files = []
         self.pieces = []
         self.metadata_pieces = []
-        self.spinner = cli.spinner()
 
     def info(self, info):
         config.piece_length = info['piece length']
