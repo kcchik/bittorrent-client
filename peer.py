@@ -46,7 +46,10 @@ class Peer(threading.Thread):
     def run(self):
         self.connect()
         self.send_handshake()
-        messages = b''
+        self.parse_stream()
+
+    def parse_stream(self):
+        stream = b''
         while True:
             try:
                 packet = self.socket.recv(4096)
@@ -59,23 +62,20 @@ class Peer(threading.Thread):
             if not self.state['handshake']:
                 packet = self.handle_handshake(packet)
 
-            messages += packet
-            while len(messages) >= 4:
-                length = struct.unpack('>I', messages[:4])[0]
-                if length == 0 or len(messages) < length + 4:
+            stream += packet
+            while len(stream) >= 4:
+                length = struct.unpack('>I', stream[:4])[0]
+                if length == 0 or len(stream) < length + 4:
                     break
-                message = messages[4:length + 4]
+                message = stream[4:length + 4]
                 self.handle(message)
                 self.respond()
-                messages = messages[length + 4:]
+                stream = stream[length + 4:]
 
     def handle(self, message):
         type = message[0]
-        payload = b''
-        if len(message) > 1:
-            payload = message[1:]
-
         # cli.printf('Type {}'.format(type), prefix=self.address[0])
+        payload = message[1:] if len(message) > 1 else b''
 
         if type == 0:
             self.state['choking'] = True
@@ -100,28 +100,28 @@ class Peer(threading.Thread):
             cli.printf('Info hashes do not match', prefix=self.address[0])
             self.disconnect()
         self.state['handshake'] = True
-        # cli.printf('Handshake', prefix=self.address[0])
         return packet[pstrlen + 49:]
 
     def handle_metadata_handshake(self, payload):
         metadata = dict(bencode.bdecode(payload[1:]).items())
-        if 'm' in metadata:
-            m = dict(metadata['m'].items())
-            self.metadata_id = m['ut_metadata'] if 'ut_metadata' in m else -1
-        if 'metadata_size' in metadata:
-            if not self.manager.metadata_pieces:
-                self.manager.metadata_pieces = [Piece() for i in range(math.ceil(metadata['metadata_size'] / config.block_length))]
+        if not 'm' in metadata or not 'metadata_size' in metadata:
+            self.disconnect()
+        m = dict(metadata['m'].items())
+        if not 'ut_metadata' in m:
+            self.disconnect()
+        self.metadata_id = m['ut_metadata']
+        if not self.manager.metadata_pieces:
+            self.manager.metadata_pieces = [Piece() for i in range(math.ceil(metadata['metadata_size'] / config.block_length))]
         self.state['metadata_handshake'] = True
 
     def handle_metadata_piece(self, payload):
         i = payload.index(b'ee') + 2
         metadata = dict(bencode.bdecode(payload[1:i]).items())
         if not 'msg_type' in metadata and 'piece' in metadata:
-            return
-        metadata_type = metadata['msg_type']
+            self.disconnect()
         self.metadata_piece_index = metadata['piece']
         piece = self.manager.metadata_pieces[self.metadata_piece_index]
-        if metadata_type == 1 and not piece.complete:
+        if metadata['msg_type'] == 1 and not piece.complete:
             cli.printf('\033[92m𝑖\033[0m {}/{}'.format(self.metadata_piece_index + 1, len(self.manager.metadata_pieces)), prefix=self.address[0])
             piece.value = payload[i:]
             piece.complete = True
@@ -156,7 +156,7 @@ class Peer(threading.Thread):
             piece.requesting = False
 
     def respond(self):
-        if not self.manager.has_info and self.metadata_id != -1:
+        if not self.manager.has_info:
             self.send_metadata_request()
         elif self.state['choking']:
             self.send_interested()
