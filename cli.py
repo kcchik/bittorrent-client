@@ -52,6 +52,7 @@ class Cli():
         print()
         print('Options:')
         print('    -h, --help'.ljust(20), 'Show this help message and exit')
+        print('    -v, --verbose'.ljust(20), 'Run in verbose output mode')
         print()
         sys.exit()
 
@@ -68,7 +69,7 @@ class spinner(threading.Thread):
 
 def loading(iteration, total):
     filled = int(100 * iteration // total)
-    bar = '\033[94m•\033[0m' * filled + 'ᐤ' * (100 - filled)
+    bar = '\033[94m•\033[0m' * filled + '◦' * (100 - filled)
     print('\r{} {}/{}'.format(bar, iteration, total), end='\b')
     if iteration == total:
         print()

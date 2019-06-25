@@ -192,6 +192,7 @@ class Peer(threading.Thread):
         message = struct.pack('>IB', 1, 2)
         self.send(message)
 
+    # TODO piece/block management happens here
     def send_request(self):
         while self.piece_index == -1:
             for i, piece in enumerate(self.manager.pieces):
