@@ -6,53 +6,74 @@ import config
 
 class Cli():
     def __init__(self, args):
+        self.name = args.pop(0)
         self.args = args
-        self.options = {
-            '-h': 0, '--help': 0,
-            '-v': 1, '--verbose': 1,
-        }
-        self.commands = {
-            'torrent': 0,
-            'magnet': 1,
-        }
+        self.options = [
+            { 'id': 0, 'name': ['-h', '--help'], 'description': 'Show this help message and exit' },
+            { 'id': 1, 'name': ['-v', '--verbose'], 'description': 'Run in verbose output mode' },
+            { 'id': 2, 'name': ['--method'], 'args': ['1', '2'], 'description': 'Select piece requesting method' },
+        ]
+        self.commands = [
+            { 'id': 0, 'name': 'torrent', 'description': 'Torrent using .torrent file' },
+            { 'id': 1, 'name': 'magnet', 'description': 'Torrent using magnet link' },
+        ]
 
     def parse(self):
-        if len(self.args) < 2:
-            self.help()
-
-        while len(self.args) > 1 and self.args[1][0] == '-':
-            option = self.args.pop(1)
-            if option in self.options:
-                type = self.options[option]
-                if type == 0:
-                    self.help()
-                elif type == 1:
-                    config.verbose = True
+        value = ''
+        args = iter(self.args)
+        for arg in args:
+            if arg[0] == '-':
+                self.parse_option(arg)
             else:
-                self.help(message='Unknown option: {}'.format(option))
+                self.parse_command(arg)
+                value = next(args, '')
+        if not config.command:
+            self.help()
+        if not value:
+            print('No arguments given for command: {}'.format(config.command))
+            sys.exit()
+        return value
 
-        if self.args[1] in self.commands:
-            if len(self.args) <= 2:
-                print('No arguments given for command: {}'.format(self.args[1]))
+    def parse_option(self, arg):
+        args = arg.split('=', 1)
+        option = next((opt for opt in self.options if args[0] in opt['name']), None)
+        if not option:
+            self.help(message='Unknown option: {}'.format(args[0]))
+        elif option['id'] == 0:
+            self.help()
+        elif option['id'] == 1:
+            config.verbose = True
+        elif option['id'] == 2:
+            if len(args) > 1 and args[1] in option['args']:
+                config.method = args[1]
+            else:
+                print('Invalid argument for option: {}'.format(option['name'][0]))
                 sys.exit()
-            if self.commands[self.args[1]] == 1:
-                config.is_magnet = True
-            return self.args[2]
+
+    def parse_command(self, arg):
+        id = next((cmd['id'] for cmd in self.commands if arg == cmd['name']), -1)
+        if id == 0:
+            config.command = 'torrent'
+        elif id == 1:
+            config.command = 'magnet'
         else:
-            self.help(message='Unknown command: {}'.format(self.args[1]))
+            self.help(message='Unknown command: {}'.format(arg))
 
     def help(self, message=None):
         if message:
             print(message)
-        print('Usage: {} [options] <command> [<args>]'.format(self.args[0]))
+        print('Usage: {} <command> <arg>'.format(self.name))
         print()
         print('Commands:')
-        print('    torrent'.ljust(20), 'Torrent using .torrent file')
-        print('    magnet'.ljust(20), 'Torrent using magnet link')
+        for command in self.commands:
+            print('    {}'.format(command['name']).ljust(20), command['description'])
         print()
         print('Options:')
-        print('    -h, --help'.ljust(20), 'Show this help message and exit')
-        print('    -v, --verbose'.ljust(20), 'Run in verbose output mode')
+        for option in self.options:
+            name = ', '.join(option['name'])
+            if 'args' in option:
+                name += '=<{}>'.format('|'.join(option['args']))
+            print('    {}'.format(name).ljust(20), option['description'])
         print()
         sys.exit()
 

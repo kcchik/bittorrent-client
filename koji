@@ -16,7 +16,7 @@ if __name__ == '__main__':
         cli = Cli(sys.argv)
         arg = cli.parse()
 
-        if config.is_magnet:
+        if config.command == 'magnet':
             magnet = Magnet(arg)
             url = magnet.announce
             info = None
@@ -35,6 +35,6 @@ if __name__ == '__main__':
         tracker = Tracker(info_hash)
         tracker.announce(url)
         manager = Manager(tracker)
-        if not config.is_magnet:
+        if config.command == 'torrent':
             manager.info(info)
         manager.start()

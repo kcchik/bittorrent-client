@@ -7,6 +7,7 @@ import config
 import cli
 from peer import Peer
 from piece import Piece
+from block import Block
 from file import File
 
 class Manager():
@@ -14,6 +15,7 @@ class Manager():
         self.tracker = tracker
         self.spinner = cli.spinner()
         self.has_info = False
+        self.progress = 0
         self.length = 0
         self.peers = [Peer(self, address) for address in tracker.addresses]
         self.files = []
@@ -31,7 +33,8 @@ class Manager():
             self.files = [File(self.length, info['name'], self.length)]
         piece_hashes = [info['pieces'][i:i + 20] for i in range(0, len(info['pieces']), 20)]
         self.pieces = [Piece(piece_hash) for piece_hash in piece_hashes]
-        self.pieces[-1].blocks = [None] * math.ceil(self.length % config.piece_length / config.block_length)
+        self.pieces[-1].blocks = [Block() for _ in range(math.ceil(self.length % config.piece_length / config.block_length))]
+        self.pieces[-1].blocks[-1].length = self.length % config.block_length
         self.has_info = True
         for i, peer in enumerate(self.peers):
             if not peer.state['connected']:
@@ -45,7 +48,7 @@ class Manager():
         for peer in self.peers:
             peer.start()
 
-        while config.is_magnet and not self.has_info:
+        while config.command == 'magnet' and not self.has_info:
             time.sleep(0.1)
             if self.metadata_pieces:
                 for i, piece in enumerate(self.metadata_pieces):
@@ -55,27 +58,29 @@ class Manager():
                     info = bencode.bdecode(b''.join([piece.value for piece in self.metadata_pieces]))
                     self.info(info)
 
-        progress = 0
         leftovers = b''
         while any(not file.complete for file in self.files) and any(peer for peer in self.peers if peer.state['connected']):
             time.sleep(0.1)
             for file in self.files:
-                progress, leftovers = self.write(file, progress, leftovers)
+                leftovers = self.write(file, leftovers)
+
+        for peer in self.peers:
+            peer.disconnect()
         cli.printf('🎉')
 
-    def write(self, file, progress, leftovers):
+    def write(self, file, leftovers):
         while not file.complete:
-            if not self.pieces[progress].complete:
-                return progress, leftovers
+            if not self.pieces[self.progress].complete:
+                return leftovers
 
-            cli.printf(('… {}/{}'.format(progress + 1, len(self.pieces))).ljust(15) + file.path)
+            cli.printf(('… {}/{}'.format(self.progress + 1, len(self.pieces))).ljust(15) + file.path)
             if not config.verbose:
                 if not self.spinner.event.is_set():
                     self.spinner.event.set()
                     print('\r\033[92m✔\033[0m Connected!')
-                cli.loading(progress + 1, len(self.pieces))
-            data = self.pieces[progress].data()
-            if progress == int(file.offset / config.piece_length):
+                cli.loading(self.progress + 1, len(self.pieces))
+            data = self.pieces[self.progress].data()
+            if self.progress == int(file.offset / config.piece_length):
                 piece_length = file.offset % config.piece_length
                 file.stream.write(data[:piece_length])
                 if piece_length > 0:
@@ -83,12 +88,12 @@ class Manager():
                 cli.printf('Complete'.ljust(14) + file.path)
                 file.stream.close()
                 file.complete = True
-                return (progress, leftovers)
+                return leftovers
 
             if not file.started or file.offset != file.length:
                 data = leftovers
                 leftovers = b''
                 file.started = True
             file.stream.write(data)
-            progress += 1
-        return progress, leftovers
+            self.progress += 1
+        return leftovers

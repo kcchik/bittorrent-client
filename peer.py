@@ -11,6 +11,7 @@ import math
 import config
 import cli
 from piece import Piece
+from block import Block
 
 class Peer(threading.Thread):
     def __init__(self, manager, address):
@@ -69,12 +70,16 @@ class Peer(threading.Thread):
                     break
                 message = stream[4:length + 4]
                 self.handle(message)
-                self.respond()
+                if not self.manager.has_info:
+                    self.send_metadata_request()
+                elif self.state['choking']:
+                    self.send_interested()
+                else:
+                    self.send_request()
                 stream = stream[length + 4:]
 
     def handle(self, message):
         type = message[0]
-        # cli.printf('Type {}'.format(type), prefix=self.address[0])
         payload = message[1:] if len(message) > 1 else b''
 
         if type == 0:
@@ -138,30 +143,39 @@ class Peer(threading.Thread):
         self.has.update([i for i, available in enumerate(bit_array) if available])
 
     def handle_block(self, payload):
-        i, offset = struct.unpack('>II', payload[:8])
-        block = payload[8:]
-        if self.piece_index != i:
-            return
-        piece = self.manager.pieces[i]
-        piece.blocks[offset // config.block_length] = block
-        if piece.left() == 0:
-            if hashlib.sha1(piece.data()).digest() == piece.value:
-                cli.printf('\033[92m✓\033[0m {}/{}'.format(i + 1, len(self.manager.pieces)), prefix=self.address[0])
-                piece.complete = True
-            else:
-                cli.printf('\033[91m✗\033[0m {}/{}'.format(i + 1, len(self.manager.pieces)), prefix=self.address[0])
-                piece.blocks = [None] * len(piece.blocks)
-                self.has.remove(i)
-            self.piece_index = -1
-            piece.requesting = False
-
-    def respond(self):
-        if not self.manager.has_info:
-            self.send_metadata_request()
-        elif self.state['choking']:
-            self.send_interested()
+        if config.method == 1:
+            i, offset = struct.unpack('>II', payload[:8])
+            block = payload[8:]
+            if self.piece_index != i:
+                return
+            piece = self.manager.pieces[i]
+            piece.blocks[offset // config.block_length].value = block
+            if piece.left() == 0:
+                if hashlib.sha1(piece.data()).digest() == piece.value:
+                    cli.printf('\033[92m✓\033[0m {}/{}'.format(i + 1, len(self.manager.pieces)), prefix=self.address[0])
+                    piece.complete = True
+                else:
+                    cli.printf('\033[91m✗\033[0m {}/{}'.format(i + 1, len(self.manager.pieces)), prefix=self.address[0])
+                    piece.blocks = [None] * len(piece.blocks)
+                    self.has.remove(i)
+                self.piece_index = -1
+                piece.requesting = False
         else:
-            self.send_request()
+            i, offset = struct.unpack('>II', payload[:8])
+            block = payload[8:]
+            if self.manager.progress != i:
+                return
+            piece = self.manager.pieces[i]
+            piece.blocks[offset // config.block_length].value = block
+            self.piece_index = -1
+            if piece.left() == 0:
+                if hashlib.sha1(piece.data()).digest() == piece.value:
+                    cli.printf('\033[92m✓\033[0m {}/{}'.format(i + 1, len(self.manager.pieces)), prefix=self.address[0])
+                    piece.complete = True
+                else:
+                    cli.printf('\033[91m✗\033[0m {}/{}'.format(i + 1, len(self.manager.pieces)), prefix=self.address[0])
+                    piece.blocks = [Block()] * len(piece.blocks)
+                    self.has.remove(i)
 
     def send(self, message):
         try:
@@ -172,7 +186,7 @@ class Peer(threading.Thread):
     def send_handshake(self):
         pstr = b'BitTorrent protocol'
         pstrlen = bytes([len(pstr)])
-        reserved = b'\x00\x00\x00\x00\x00\x10\x00\x00' if config.is_magnet else bytes(8)
+        reserved = bytes(8) if config.command == 'torrent' else b'\x00\x00\x00\x00\x00\x10\x00\x00'
         message = pstrlen + pstr + reserved + self.manager.tracker.info_hash + self.manager.tracker.peer_id
         self.send(message)
 
@@ -192,21 +206,40 @@ class Peer(threading.Thread):
         message = struct.pack('>IB', 1, 2)
         self.send(message)
 
-    # TODO piece/block management happens here
     def send_request(self):
-        while self.piece_index == -1:
-            for i, piece in enumerate(self.manager.pieces):
-                if not piece.requesting and not piece.complete and i in self.has:
-                    piece.requesting = True
-                    self.piece_index = i
-                    break
-            else:
-                time.sleep(0.1)
-            if not any(not file.complete for file in self.manager.files):
-                self.disconnect()
-        piece = self.manager.pieces[self.piece_index]
-        block_length = config.block_length
-        if self.piece_index + 1 == len(self.manager.pieces) and piece.left() == 1:
-            block_length = self.manager.length % config.block_length
-        message = struct.pack('>IBIII', 13, 6, self.piece_index, piece.block_offset(), block_length)
-        self.send(message)
+        if config.method == 1:
+            while self.piece_index == -1:
+                for i, piece in enumerate(self.manager.pieces):
+                    if not piece.requesting and not piece.complete and i in self.has:
+                        piece.requesting = True
+                        self.piece_index = i
+                        break
+                else:
+                    time.sleep(0.1)
+                if not any(not file.complete for file in self.manager.files):
+                    self.disconnect()
+            piece = self.manager.pieces[self.piece_index]
+            block_length = config.block_length
+            if self.piece_index + 1 == len(self.manager.pieces) and piece.left() == 1:
+                block_length = self.manager.length % config.block_length
+            message = struct.pack('>IBIII', 13, 6, self.piece_index, piece.block_offset(), block_length)
+            self.send(message)
+        else:
+            progress = self.manager.progress
+            piece = self.manager.pieces[progress]
+            while self.piece_index == -1:
+                progress = self.manager.progress
+                if progress in self.has:
+                    piece = self.manager.pieces[progress]
+                    for i, block in enumerate(piece.blocks):
+                        if block.requesting < 1 and not block.value:
+                            block.requesting += 1
+                            self.piece_index = i
+                            cli.printf('\033[92mb\033[0m {}/{}'.format(i + 1, len(piece.blocks)), prefix=self.address[0])
+                            break
+                if self.piece_index != -1:
+                    time.sleep(0.1)
+                if not any(not file.complete for file in self.manager.files):
+                    self.disconnect()
+            message = struct.pack('>IBIII', 13, 6, progress, self.piece_index * config.block_length, piece.blocks[self.piece_index].length)
+            self.send(message)
