@@ -3,6 +3,7 @@ import os
 import sys
 import hashlib
 import bencode
+import time
 
 import config
 from cli import Cli
@@ -29,6 +30,7 @@ if __name__ == '__main__':
             name = info['name']
 
         print('\033[1m{}\033[0m'.format(name))
+        config.start_time = time.time()
 
         tracker = Tracker(info_hash)
         tracker.announce(url)

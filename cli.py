@@ -73,7 +73,7 @@ def loading(iteration, total):
     print('\r{} {}/{}'.format(bar, iteration, total), end='\b')
     if iteration == total:
         print()
-        print('\033[92m✔\033[0m Complete!')
+        print('\033[92m✔\033[0m Complete in {:.3f}s!'.format(time.time() - config.start_time))
 
 def printf(message, prefix=''):
     if config.verbose:

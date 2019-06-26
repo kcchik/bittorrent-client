@@ -1,13 +1,13 @@
 # Koji
 
-BitTorrent Client for [nyaa.si](https://nyaa.si/)
+Command line BitTorrent client for [nyaa.si](https://nyaa.si/)
 
 ### Requirements
 
 * Python
 * Pipenv
 
-### Installation
+### Developing
 
 Clone this repo
 ```sh
@@ -16,27 +16,49 @@ git clone https://github.com/kcchik/koji.git
 cd koji
 ```
 
-Start pipenv shell and install dependencies
+Launch Pipenv shell and install dependencies
 ```sh
-# must run/develop in pipenv
+# always develop in pipenv
 pipenv shell
 
 pipenv install
 ```
 
-To exit pipenv, use `exit`
-
-### Start
-
+Start script
 ```sh
 python koji -h
 ```
 
 ### TODO
 
-* [x] Torrents with multiple files
-* [x] Manage inactive peers (wait for piece to become available)
+* [x] Multi-file torrents
 * [x] Magnet links
-* [ ] Piece management
-* [ ] Incomplete torrents
-* [ ] Send pieces
+* [ ] Pause/resume torrents
+
+### Piece management
+
+#### Method 1
+Pieces requested simultaneously. Blocks requested one after another.
+```sh
+# 3 peers, 3 pieces, 3 blocks/piece
+
+peer_a: (0, 0) -> (0, 1) -> (0, 2)
+
+peer_b: (1, 0) -> (1, 1) -> (1, 2)
+
+peer_c: (2, 0) -> (2, 1) -> (2, 2)
+```
+Slow pieces will create conjestion, writing happens in large chunks
+
+#### Method 2
+Pieces requested one after another. Blocks requested simultaneously.
+```sh
+# 3 peers, 3 pieces, 3 blocks/piece
+
+peer_a: (0, 0) -> (1, 0) -> (2, 0)
+
+peer_b: (0, 1) -> (1, 1) -> (2, 1)
+
+peer_c: (0, 2) -> (1, 2) -> (2, 2)
+```
+Pieces finish in order, but peers won't request from the next piece until the current one is complete
