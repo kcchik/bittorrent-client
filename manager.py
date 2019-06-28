@@ -32,6 +32,11 @@ class Manager():
         self.pieces[-1]['blocks'] = [factory.block() for _ in range(num_blocks)]
         self.pieces[-1]['blocks'][-1]['length'] = self.length % config.BLOCK_SIZE
 
+        for peer in self.peers:
+            if config.COMMAND == 'magnet' and not peer.state['connected']:
+                peer = Peer(peer.address)
+                peer.start()
+
     def start(self):
         config.spinner.start()
 
