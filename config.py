@@ -1,6 +1,11 @@
-block_length = 2 ** 14
-piece_length = 0
-command = ''
-verbose = False
-start_time = None
-method=1
+COMMAND = ''
+VERBOSE = False
+METHOD = 1
+
+BLOCK_SIZE = 2 ** 14
+PIECE_SIZE = 0
+START_TIME = None
+
+spinner = None
+tracker = None
+manager = None

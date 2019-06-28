@@ -1,40 +1,53 @@
 #!/usr/bin/env pipenv run python
-import os
 import sys
-import hashlib
-import bencode
 import time
+import re
+import hashlib
+import urllib.parse
+import bencode
 
 import config
-from cli import Cli
-from magnet import Magnet
-from torrent import Torrent
+import cli
 from tracker import Tracker
 from manager import Manager
 
+def torrent(path):
+    regex = re.compile('.+.torrent$')
+    if not regex.match(path):
+        print('Not a .torrent file')
+        sys.exit()
+    with open(path, 'rb') as torrent:
+        data = bencode.bdecode(bytes(torrent.read()))
+        announce = data['announce']
+        info = data['info']
+        return info['name'], announce, info, hashlib.sha1(bencode.bencode(info)).digest()
+
+def magnet(url):
+    regex = re.compile('magnet:.+$')
+    if not regex.match(url):
+        print('Not a magnet link')
+        sys.exit()
+    params = urllib.parse.parse_qs(url[8:])
+    if 'xt' not in params or 'tr' not in params:
+        print('Invalid magnet link')
+        sys.exit()
+    name = params['dn'][0]
+    info_hash = bytes(bytearray.fromhex(params['xt'][0][9:]))
+    announce = params['tr'][0]
+    return name, announce, None, info_hash
+
 if __name__ == '__main__':
-        cli = Cli(sys.argv)
-        arg = cli.parse()
+    arg = cli.Parser(sys.argv).parse()
+    config.spinner = cli.Spinner()
 
-        if config.command == 'magnet':
-            magnet = Magnet(arg)
-            url = magnet.announce
-            info = None
-            info_hash = magnet.info_hash
-            name = magnet.name
-        else:
-            torrent = Torrent(arg)
-            url = torrent.announce
-            info = torrent.info
-            info_hash = hashlib.sha1(bencode.bencode(info)).digest()
-            name = info['name']
+    name, url, info, info_hash = torrent(arg) if config.COMMAND == 'torrent' else magnet(arg)
 
-        print('\033[1m{}\033[0m'.format(name))
-        config.start_time = time.time()
+    print('\033[1m{}\033[0m'.format(name))
+    config.START_TIME = time.time()
 
-        tracker = Tracker(info_hash)
-        tracker.announce(url)
-        manager = Manager(tracker)
-        if config.command == 'torrent':
-            manager.info(info)
-        manager.start()
+    config.tracker = Tracker(info_hash)
+    config.tracker.announce(url)
+    config.manager = Manager()
+    if config.COMMAND == 'torrent':
+        config.manager.info(info)
+    config.manager.start()

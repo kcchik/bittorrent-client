@@ -1,8 +1,7 @@
-import hashlib
-import bencode
-import requests
 import os
 import sys
+import bencode
+import requests
 
 class Tracker:
     def __init__(self, info_hash):
@@ -20,7 +19,7 @@ class Tracker:
         if 'failure reason' in response:
             print('Failure reason:', response['failure reason'])
             sys.exit()
-        elif not 'peers' in response:
+        elif 'peers' not in response:
             print('Failure reason:', 'no peers')
             sys.exit()
         peers = [response['peers'][i:i + 6] for i in range(0, len(response['peers']), 6)]

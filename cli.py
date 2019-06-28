@@ -4,18 +4,38 @@ import time
 
 import config
 
-class Cli():
+class Parser():
     def __init__(self, args):
         self.name = args.pop(0)
         self.args = args
         self.options = [
-            { 'id': 0, 'name': ['-h', '--help'], 'description': 'Show this help message and exit' },
-            { 'id': 1, 'name': ['-v', '--verbose'], 'description': 'Run in verbose output mode' },
-            { 'id': 2, 'name': ['--method'], 'args': ['1', '2'], 'description': 'Select piece requesting method' },
+            {
+                'id': 0,
+                'name': ['-h', '--help'],
+                'description': 'Show this help message and exit'
+            },
+            {
+                'id': 1,
+                'name': ['-v', '--verbose'],
+                'description': 'Run in verbose output mode'
+            },
+            {
+                'id': 2,
+                'name': ['--method'],
+                'args': ['1', '2'], 'description': 'Select piece requesting method'
+            },
         ]
         self.commands = [
-            { 'id': 0, 'name': 'torrent', 'description': 'Torrent using .torrent file' },
-            { 'id': 1, 'name': 'magnet', 'description': 'Torrent using magnet link' },
+            {
+                'id': 0,
+                'name': 'torrent',
+                'description': 'Torrent using .torrent file'
+            },
+            {
+                'id': 1,
+                'name': 'magnet',
+                'description': 'Torrent using magnet link'
+            },
         ]
 
     def parse(self):
@@ -27,10 +47,10 @@ class Cli():
             else:
                 self.parse_command(arg)
                 value = next(args, '')
-        if not config.command:
+        if not config.COMMAND:
             self.help()
         if not value:
-            print('No arguments given for command: {}'.format(config.command))
+            print('No arguments given for command: {}'.format(config.COMMAND))
             sys.exit()
         return value
 
@@ -42,20 +62,20 @@ class Cli():
         elif option['id'] == 0:
             self.help()
         elif option['id'] == 1:
-            config.verbose = True
+            config.VERBOSE = True
         elif option['id'] == 2:
             if len(args) > 1 and args[1] in option['args']:
-                config.method = args[1]
+                config.METHOD = args[1]
             else:
                 print('Invalid argument for option: {}'.format(option['name'][0]))
                 sys.exit()
 
     def parse_command(self, arg):
-        id = next((cmd['id'] for cmd in self.commands if arg == cmd['name']), -1)
-        if id == 0:
-            config.command = 'torrent'
-        elif id == 1:
-            config.command = 'magnet'
+        command = next((cmd['id'] for cmd in self.commands if arg == cmd['name']), -1)
+        if command == 0:
+            config.COMMAND = 'torrent'
+        elif command == 1:
+            config.COMMAND = 'magnet'
         else:
             self.help(message='Unknown command: {}'.format(arg))
 
@@ -77,25 +97,27 @@ class Cli():
         print()
         sys.exit()
 
-class spinner(threading.Thread):
+class Spinner(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.event = threading.Event()
 
     def run(self):
-        while not self.event.is_set():
-            for spin in '⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏':
-                print('\r{} Connecting'.format(spin), end='\b')
-                self.event.wait(0.1)
+        if not config.VERBOSE:
+            while not self.event.is_set():
+                for spin in '⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏':
+                    print('\r{} Connecting'.format(spin), end='\b')
+                    self.event.wait(0.1)
 
-def loading(iteration, total):
-    filled = int(100 * iteration // total)
-    bar = '\033[94m•\033[0m' * filled + '◦' * (100 - filled)
-    print('\r{} {}/{}'.format(bar, iteration, total), end='\b')
-    if iteration == total:
-        print()
-        print('\033[92m✔\033[0m Complete in {:.3f}s!'.format(time.time() - config.start_time))
+def loading(iteration, total, extra=''):
+    if not config.VERBOSE:
+        filled = int(100 * iteration // total)
+        progress_bar = '\033[94m•\033[0m' * filled + '◦' * (100 - filled)
+        print('\r{} {}/{} {}'.format(progress_bar, iteration, total, extra), end='\b')
+        if iteration == total:
+            print()
+            print('\033[92m✔\033[0m Complete in {:.3f}s!'.format(time.time() - config.START_TIME))
 
 def printf(message, prefix=''):
-    if config.verbose:
+    if config.VERBOSE:
         print(prefix.ljust(20), message)
