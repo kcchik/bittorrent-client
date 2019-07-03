@@ -34,6 +34,7 @@ python koji -h
 * [x] Multi-file torrents
 * [x] Magnet links
 * [ ] Pause/resume torrents
+* [ ] Reconnect peers
 
 ### Working
 

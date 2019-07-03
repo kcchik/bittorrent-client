@@ -52,6 +52,7 @@ class Peer(threading.Thread):
     def parse_stream(self):
         stream = b''
         while True:
+            # cli.printf('Receiving', prefix=self.address[0])
             try:
                 packet = self.socket.recv(4096)
             except OSError as _:
@@ -63,15 +64,22 @@ class Peer(threading.Thread):
             if not self.state['handshake']:
                 packet = self.handle_handshake(packet)
 
+            done = True
             stream += packet
             while len(stream) >= 4:
                 length = struct.unpack('>I', stream[:4])[0]
                 if length == 0 or len(stream) < length + 4:
+                    self.send(bytes(4))
+                    done = False
                     break
                 message = stream[4:length + 4]
                 self.handle(message)
+                stream = stream[length + 4:]
+
+            if done:
                 if not config.manager.files:
-                    self.send_metadata_request()
+                    if self.metadata_id != -1:
+                        self.send_metadata_request()
                 elif self.state['choking']:
                     self.send_interested()
                 else:
@@ -79,21 +87,25 @@ class Peer(threading.Thread):
                         self.send_request_1()
                     else:
                         self.send_request_2()
-                stream = stream[length + 4:]
 
     def handle(self, message):
         num = message[0]
         payload = message[1:] if len(message) > 1 else b''
 
         if num == 0:
+            # cli.printf('Choked', prefix=self.address[0])
             self.state['choking'] = True
         elif num == 1:
+            # cli.printf('Unchoked', prefix=self.address[0])
             self.state['choking'] = False
         elif num == 4:
+            # cli.printf('Have', prefix=self.address[0])
             self.handle_have(payload)
         elif num == 5:
+            # cli.printf('Bitfield', prefix=self.address[0])
             self.handle_bitfield(payload)
         elif num == 7:
+            # cli.printf('Block', prefix=self.address[0])
             if config.METHOD == 1:
                 self.handle_block_1(payload)
             else:
@@ -101,8 +113,10 @@ class Peer(threading.Thread):
         elif num == 20:
             if not config.manager.files:
                 if not self.state['metadata_handshake']:
+                    cli.printf('Metadata Handshake', prefix=self.address[0])
                     self.handle_metadata_handshake(payload)
                 else:
+                    # cli.printf('Metadata Piece', prefix=self.address[0])
                     self.handle_metadata_piece(payload)
 
     def handle_handshake(self, packet):
@@ -211,7 +225,7 @@ class Peer(threading.Thread):
                     'piece': self.piece_index,
                 })
                 message = struct.pack('>IBB', len(metadata) + 2, 20, self.metadata_id) + metadata
-                cli.printf(message, prefix=self.address[0])
+                # cli.printf(message, prefix=self.address[0])
                 self.send(message)
                 break
 
