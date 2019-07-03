@@ -75,7 +75,10 @@ class Peer(threading.Thread):
                 elif self.state['choking']:
                     self.send_interested()
                 else:
-                    self.send_request()
+                    if config.METHOD == 1:
+                        self.send_request_1()
+                    else:
+                        self.send_request_2()
                 stream = stream[length + 4:]
 
     def handle(self, message):
@@ -91,7 +94,10 @@ class Peer(threading.Thread):
         elif num == 5:
             self.handle_bitfield(payload)
         elif num == 7:
-            self.handle_block(payload)
+            if config.METHOD == 1:
+                self.handle_block_1(payload)
+            else:
+                self.handle_block_2(payload)
         elif num == 20:
             if not config.manager.files:
                 if not self.state['metadata_handshake']:
@@ -142,40 +148,40 @@ class Peer(threading.Thread):
         bit_array = list(bitstring.BitArray(payload))
         self.has.update([i for i, available in enumerate(bit_array) if available])
 
-    def handle_block(self, payload):
-        if config.METHOD == 1:
-            i, offset = struct.unpack('>II', payload[:8])
-            block = payload[8:]
-            if self.piece_index != i:
-                return
-            piece = config.manager.pieces[i]
-            piece['blocks'][offset // config.BLOCK_SIZE]['value'] = block
-            if sum(1 for block in piece['blocks'] if not block['value']) == 0:
-                if hashlib.sha1(b''.join([block['value'] for block in piece['blocks']])).digest() == piece['value']:
-                    cli.printf('\033[92m✓\033[0m {}/{}'.format(i + 1, len(config.manager.pieces)), prefix=self.address[0])
-                    piece['complete'] = True
-                else:
-                    cli.printf('\033[91m✗\033[0m {}/{}'.format(i + 1, len(config.manager.pieces)), prefix=self.address[0])
-                    piece['blocks'] = [factory.block() for _ in piece['blocks']]
-                    self.has.remove(i)
-                self.piece_index = -1
-                piece['requesting'] = False
-        else:
-            i, offset = struct.unpack('>II', payload[:8])
-            block = payload[8:]
-            if config.manager.progress != i:
-                return
-            piece = config.manager.pieces[i]
-            piece['blocks'][offset // config.BLOCK_SIZE]['value'] = block
+    def handle_block_1(self, payload):
+        i, offset = struct.unpack('>II', payload[:8])
+        block = payload[8:]
+        if self.piece_index != i:
+            return
+        piece = config.manager.pieces[i]
+        piece['blocks'][offset // config.BLOCK_SIZE]['value'] = block
+        if sum(1 for block in piece['blocks'] if not block['value']) == 0:
+            if hashlib.sha1(b''.join([block['value'] for block in piece['blocks']])).digest() == piece['value']:
+                cli.printf('\033[92m✓\033[0m {}/{}'.format(i + 1, len(config.manager.pieces)), prefix=self.address[0])
+                piece['complete'] = True
+            else:
+                cli.printf('\033[91m✗\033[0m {}/{}'.format(i + 1, len(config.manager.pieces)), prefix=self.address[0])
+                piece['blocks'] = [factory.block() for _ in piece['blocks']]
+                self.has.remove(i)
             self.piece_index = -1
-            if sum(1 for block in piece['blocks'] if not block['value']) == 0:
-                if hashlib.sha1(b''.join([block['value'] for block in piece['blocks']])).digest() == piece['value']:
-                    cli.printf('\033[92m✓\033[0m {}/{}'.format(i + 1, len(config.manager.pieces)), prefix=self.address[0])
-                    piece['complete'] = True
-                else:
-                    cli.printf('\033[91m✗\033[0m {}/{}'.format(i + 1, len(config.manager.pieces)), prefix=self.address[0])
-                    piece['blocks'] = [factory.block() for _ in piece['blocks']]
-                    self.has.remove(i)
+            piece['requesting'] = False
+
+    def handle_block_2(self, payload):
+        i, offset = struct.unpack('>II', payload[:8])
+        block = payload[8:]
+        if config.manager.progress != i:
+            return
+        piece = config.manager.pieces[i]
+        piece['blocks'][offset // config.BLOCK_SIZE]['value'] = block
+        self.piece_index = -1
+        if sum(1 for block in piece['blocks'] if not block['value']) == 0:
+            if hashlib.sha1(b''.join([block['value'] for block in piece['blocks']])).digest() == piece['value']:
+                cli.printf('\033[92m✓\033[0m {}/{}'.format(i + 1, len(config.manager.pieces)), prefix=self.address[0])
+                piece['complete'] = True
+            else:
+                cli.printf('\033[91m✗\033[0m {}/{}'.format(i + 1, len(config.manager.pieces)), prefix=self.address[0])
+                piece['blocks'] = [factory.block() for _ in piece['blocks']]
+                self.has.remove(i)
 
     def send(self, message):
         try:
@@ -205,6 +211,7 @@ class Peer(threading.Thread):
                     'piece': self.piece_index,
                 })
                 message = struct.pack('>IBB', len(metadata) + 2, 20, self.metadata_id) + metadata
+                cli.printf(message, prefix=self.address[0])
                 self.send(message)
                 break
 
@@ -212,55 +219,55 @@ class Peer(threading.Thread):
         message = struct.pack('>IB', 1, 2)
         self.send(message)
 
-    def send_request(self):
-        if config.METHOD == 1:
-            while self.piece_index == -1:
-                for i, piece in enumerate(config.manager.pieces):
-                    if not piece['requesting'] and not piece['complete'] and i in self.has:
-                        piece['requesting'] = True
-                        self.piece_index = i
-                        break
-                else:
-                    time.sleep(0.1)
-                if not any(not file['complete'] for file in config.manager.files):
-                    self.disconnect()
-            piece = config.manager.pieces[self.piece_index]
-            block_length = config.BLOCK_SIZE
-            if (self.piece_index + 1 == len(config.manager.pieces) and sum(1 for block in piece['blocks'] if not block['value']) == 1):
-                block_length = config.manager.length % config.BLOCK_SIZE
-            offset = (len(piece['blocks']) - sum(1 for block in piece['blocks'] if not block['value'])) * config.BLOCK_SIZE
-            message = struct.pack(
-                '>IBIII',
-                13,
-                6,
-                self.piece_index,
-                offset,
-                block_length
-            )
-            self.send(message)
-        else:
+    def send_request_1(self):
+        while self.piece_index == -1:
+            for i, piece in enumerate(config.manager.pieces):
+                if not piece['requesting'] and not piece['complete'] and i in self.has:
+                    piece['requesting'] = True
+                    self.piece_index = i
+                    break
+            else:
+                time.sleep(0.1)
+            if not any(not file['complete'] for file in config.manager.files):
+                self.disconnect()
+        piece = config.manager.pieces[self.piece_index]
+        block_length = config.BLOCK_SIZE
+        if (self.piece_index + 1 == len(config.manager.pieces) and sum(1 for block in piece['blocks'] if not block['value']) == 1):
+            block_length = config.manager.length % config.BLOCK_SIZE
+        offset = (len(piece['blocks']) - sum(1 for block in piece['blocks'] if not block['value'])) * config.BLOCK_SIZE
+        message = struct.pack(
+            '>IBIII',
+            13,
+            6,
+            self.piece_index,
+            offset,
+            block_length
+        )
+        self.send(message)
+
+    def send_request_2(self):
+        progress = config.manager.progress
+        piece = config.manager.pieces[progress]
+        while self.piece_index == -1:
             progress = config.manager.progress
-            piece = config.manager.pieces[progress]
-            while self.piece_index == -1:
-                progress = config.manager.progress
-                if progress in self.has:
-                    piece = config.manager.pieces[progress]
-                    for i, block in enumerate(piece['blocks']):
-                        if block['requesting'] < 1 and not block['value']:
-                            block['requesting'] += 1
-                            self.piece_index = i
-                            cli.printf('\033[92mb\033[0m {}/{}'.format(i + 1, len(piece['blocks'])), prefix=self.address[0])
-                            break
-                if self.piece_index != -1:
-                    time.sleep(0.1)
-                if not any(not file['complete'] for file in config.manager.files):
-                    self.disconnect()
-            message = struct.pack(
-                '>IBIII',
-                13,
-                6,
-                progress,
-                self.piece_index * config.BLOCK_SIZE,
-                piece['blocks'][self.piece_index]['length']
-            )
-            self.send(message)
+            if progress in self.has:
+                piece = config.manager.pieces[progress]
+                for i, block in enumerate(piece['blocks']):
+                    if block['requesting'] < 1 and not block['value']:
+                        block['requesting'] += 1
+                        self.piece_index = i
+                        cli.printf('\033[92mb\033[0m {}/{}'.format(i + 1, len(piece['blocks'])), prefix=self.address[0])
+                        break
+            if self.piece_index != -1:
+                time.sleep(0.1)
+            if not any(not file['complete'] for file in config.manager.files):
+                self.disconnect()
+        message = struct.pack(
+            '>IBIII',
+            13,
+            6,
+            progress,
+            self.piece_index * config.BLOCK_SIZE,
+            piece['blocks'][self.piece_index]['length']
+        )
+        self.send(message)

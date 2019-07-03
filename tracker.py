@@ -1,7 +1,7 @@
 import os
 import sys
-import bencode
 import requests
+import bencode
 
 class Tracker:
     def __init__(self, info_hash):

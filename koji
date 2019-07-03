@@ -16,11 +16,10 @@ def torrent(path):
     if not regex.match(path):
         print('Not a .torrent file')
         sys.exit()
-    with open(path, 'rb') as torrent:
-        data = bencode.bdecode(bytes(torrent.read()))
-        announce = data['announce']
-        info = data['info']
-        return info['name'], announce, info, hashlib.sha1(bencode.bencode(info)).digest()
+    with open(path, 'rb') as stream:
+        data = bencode.bdecode(bytes(stream.read()))
+        info_dict = data['info']
+        return info_dict['name'], data['announce'], info_dict, hashlib.sha1(bencode.bencode(info_dict)).digest()
 
 def magnet(url):
     regex = re.compile('magnet:.+$')
@@ -28,25 +27,22 @@ def magnet(url):
         print('Not a magnet link')
         sys.exit()
     params = urllib.parse.parse_qs(url[8:])
-    if 'xt' not in params or 'tr' not in params:
+    if not all(key in params for key in ['xt', 'tr', 'dn']):
         print('Invalid magnet link')
         sys.exit()
-    name = params['dn'][0]
-    info_hash = bytes(bytearray.fromhex(params['xt'][0][9:]))
-    announce = params['tr'][0]
-    return name, announce, None, info_hash
+    return params['dn'][0], params['tr'][0], None, bytes(bytearray.fromhex(params['xt'][0][9:]))
 
 if __name__ == '__main__':
     arg = cli.Parser(sys.argv).parse()
     config.spinner = cli.Spinner()
 
-    name, url, info, info_hash = torrent(arg) if config.COMMAND == 'torrent' else magnet(arg)
+    name, tracker_url, info, info_hash = torrent(arg) if config.COMMAND == 'torrent' else magnet(arg)
 
     print('\033[1m{}\033[0m'.format(name))
     config.START_TIME = time.time()
 
     config.tracker = Tracker(info_hash)
-    config.tracker.announce(url)
+    config.tracker.announce(tracker_url)
     config.manager = Manager()
     if config.COMMAND == 'torrent':
         config.manager.info(info)

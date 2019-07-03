@@ -35,6 +35,13 @@ python koji -h
 * [x] Magnet links
 * [ ] Pause/resume torrents
 
+### Working
+
+* [x] Single file torrent
+* [x] Multi file torrent
+* [ ] Single file magnet
+* [x] Multi file magnet
+
 ### Piece management
 
 #### Method 1

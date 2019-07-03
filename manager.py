@@ -85,7 +85,8 @@ class Manager():
                 return leftovers
 
             if not file['started'] or file['offset'] != file['length']:
-                data = leftovers
+                cli.printf('Starting'.ljust(14) + file['path'])
+                data = leftovers + data
                 leftovers = b''
                 file['started'] = True
 
