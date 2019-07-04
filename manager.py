@@ -53,7 +53,7 @@ class Manager():
             peer.start()
 
         # Wait for metadata pieces to complete
-        while config.COMMAND == 'magnet' and not self.files:
+        while config.COMMAND == 'magnet' and not config.PIECE_SIZE:
             time.sleep(0.1)
             if self.pieces and all(piece['complete'] for piece in self.pieces):
                 pieces = [piece['value'] for piece in self.pieces]
@@ -61,9 +61,10 @@ class Manager():
                 self.info(info)
 
         leftovers = b''
-        # Wait for pieces to be written
+        # Incomplete files and at least one peer
         while any(not file['complete'] for file in self.files) and any(peer.state['connected'] for peer in self.peers):
             time.sleep(0.1)
+            # Write to files
             for file in self.files:
                 leftovers = self.write(file, leftovers)
 

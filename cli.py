@@ -1,5 +1,4 @@
 import sys
-import threading
 import time
 
 import config
@@ -107,9 +106,11 @@ def connecting():
     if not config.VERBOSE:
         print('\rConnecting...', end='\b')
 
+
 def connected():
     if not config.VERBOSE:
         print('\rConnected!   ')
+
 
 def loading(iteration, total, extra=''):
     if not config.VERBOSE:

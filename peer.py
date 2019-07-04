@@ -65,20 +65,20 @@ class Peer(threading.Thread):
             if not self.state['handshake']:
                 packet = self.handle_handshake(packet)
 
-            done = True
+            stream_complete = True
             stream += packet
             while len(stream) >= 4:
                 length = struct.unpack('>I', stream[:4])[0]
                 if length == 0 or len(stream) < length + 4:
                     self.send(bytes(4))
-                    done = False
+                    stream_complete = False
                     break
                 message = stream[4:length + 4]
                 self.handle(message)
                 stream = stream[length + 4:]
 
-            if done:
-                if not config.manager.files:
+            if stream_complete:
+                if not config.PIECE_SIZE:
                     if self.metadata_id != -1:
                         self.send_metadata_request()
                 elif self.state['choking']:
@@ -107,7 +107,7 @@ class Peer(threading.Thread):
         elif message_id == 7:
             self.handle_block(payload)
         # Metadata
-        elif message_id == 20 and not config.manager.files:
+        elif message_id == 20 and not config.PIECE_SIZE:
             # Handshake
             if not self.state['metadata_handshake']:
                 self.handle_metadata_handshake(payload)
