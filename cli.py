@@ -4,6 +4,7 @@ import time
 
 import config
 
+
 class Parser():
     def __init__(self, args):
         self.name = args.pop(0)
@@ -38,6 +39,7 @@ class Parser():
             },
         ]
 
+
     def parse(self):
         value = ''
         args = iter(self.args)
@@ -53,6 +55,7 @@ class Parser():
             print('No arguments given for command: {}'.format(config.COMMAND))
             sys.exit()
         return value
+
 
     def parse_option(self, arg):
         args = arg.split('=', 1)
@@ -70,6 +73,7 @@ class Parser():
                 print('Invalid argument for option: {}'.format(option['name'][0]))
                 sys.exit()
 
+
     def parse_command(self, arg):
         command = next((cmd['id'] for cmd in self.commands if arg == cmd['name']), -1)
         if command == 0:
@@ -78,6 +82,7 @@ class Parser():
             config.COMMAND = 'magnet'
         else:
             self.help(message='Unknown command: {}'.format(arg))
+
 
     def help(self, message=None):
         if message:
@@ -97,17 +102,14 @@ class Parser():
         print()
         sys.exit()
 
-class Spinner(threading.Thread):
-    def __init__(self):
-        threading.Thread.__init__(self)
-        self.event = threading.Event()
 
-    def run(self):
-        if not config.VERBOSE:
-            while not self.event.is_set():
-                for spin in '⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏':
-                    print('\r{} Connecting'.format(spin), end='\b')
-                    self.event.wait(0.1)
+def connecting():
+    if not config.VERBOSE:
+        print('\rConnecting...', end='\b')
+
+def connected():
+    if not config.VERBOSE:
+        print('\rConnected!   ')
 
 def loading(iteration, total, extra=''):
     if not config.VERBOSE:
@@ -117,6 +119,7 @@ def loading(iteration, total, extra=''):
         if iteration == total:
             print()
             print('\033[92m✔\033[0m Complete in {:.3f}s!'.format(time.time() - config.START_TIME))
+
 
 def printf(message, prefix=''):
     if config.VERBOSE:

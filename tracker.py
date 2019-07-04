@@ -3,11 +3,13 @@ import sys
 import requests
 import bencode
 
+
 class Tracker:
     def __init__(self, info_hash):
         self.info_hash = info_hash
         self.peer_id = b'--KOJI--' + os.urandom(12)
         self.addresses = []
+
 
     def announce(self, url):
         params = {
