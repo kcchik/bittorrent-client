@@ -11,6 +11,7 @@ import cli
 from tracker import Tracker
 from manager import Manager
 
+
 def torrent(path):
     regex = re.compile('.+.torrent$')
     if not regex.match(path):
@@ -20,6 +21,7 @@ def torrent(path):
         data = bencode.bdecode(bytes(stream.read()))
         info_dict = data['info']
         return info_dict['name'], data['announce'], info_dict, hashlib.sha1(bencode.bencode(info_dict)).digest()
+
 
 def magnet(url):
     regex = re.compile('magnet:.+$')
@@ -32,9 +34,9 @@ def magnet(url):
         sys.exit()
     return params['dn'][0], params['tr'][0], None, bytes(bytearray.fromhex(params['xt'][0][9:]))
 
+
 if __name__ == '__main__':
     arg = cli.Parser(sys.argv).parse()
-    config.spinner = cli.Spinner()
 
     name, tracker_url, info, info_hash = torrent(arg) if config.COMMAND == 'torrent' else magnet(arg)
 
