@@ -13,6 +13,7 @@ pipenv shell
 pipenv install
 ```
 
+Show usage instructions
 ```sh
 python koji
 ```
