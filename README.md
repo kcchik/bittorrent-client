@@ -6,19 +6,14 @@ Command line BitTorrent client for [nyaa.si](https://nyaa.si/)
 * Pipenv
 
 ### Installing
-Clone this repo
-```sh
-git clone https://github.com/kcchik/koji.git
-
-cd koji
-```
-
-Install dependencies and start
+Install dependencies
 ```sh
 pipenv shell
 
 pipenv install
+```
 
+```sh
 python koji
 ```
 
