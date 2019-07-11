@@ -43,6 +43,12 @@ if __name__ == '__main__':
     print('\033[1m{}\033[0m'.format(name))
     config.START_TIME = time.time()
 
+    # if 'files' in info:
+    #     for file in info['files']:
+    #         print(file['length'])
+    # else:
+    #     print(info['length'])
+
     config.tracker = Tracker(info_hash)
     config.tracker.announce(tracker_url)
     config.manager = Manager()

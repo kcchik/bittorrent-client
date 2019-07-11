@@ -23,3 +23,6 @@ python koji
 * [x] Magnet links
 * [ ] Reconnect peers
 * [ ] Pause/resume torrents
+
+### Status
+* Single file magnet failing
