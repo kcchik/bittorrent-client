@@ -6,15 +6,15 @@ Command line BitTorrent client for [nyaa.si](https://nyaa.si/)
 * Pipenv
 
 ### Installing
-Install dependencies
+Open virtualenv
 ```sh
 pipenv shell
-
-pipenv install
 ```
 
-Start and show help message
+Install dependencies and start
 ```sh
+pipenv install
+
 python koji
 ```
 
