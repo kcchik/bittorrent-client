@@ -24,5 +24,5 @@ python koji
 * [ ] Reconnect peers
 * [ ] Pause/resume torrents
 
-### Status
-* Single file magnet failing
+### Notes
+Use events instead of checking every 0.1s. This prevents Koji from requesting the same piece twice during the metadata stage.

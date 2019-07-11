@@ -63,6 +63,7 @@ class Peer(threading.Thread):
                 self.disconnect()
 
             if not self.state['handshake']:
+                self.printf('Handshake', self.piece_index)
                 packet = self.handle_handshake(packet)
 
             stream_complete = True
@@ -80,10 +81,13 @@ class Peer(threading.Thread):
             if stream_complete:
                 if not config.PIECE_SIZE:
                     if self.metadata_id != -1:
+                        self.printf('Metadata request', self.piece_index)
                         self.send_metadata_request()
                 elif self.state['choking']:
+                    self.printf('Interested', self.piece_index)
                     self.send_interested()
                 else:
+                    self.printf('Request', self.piece_index)
                     self.send_request()
 
 
@@ -93,26 +97,33 @@ class Peer(threading.Thread):
 
         # Choke
         if message_id == 0:
+            self.printf('Choke', self.piece_index)
             self.state['choking'] = True
         # Unchoke
         elif message_id == 1:
+            self.printf('Unchoke', self.piece_index)
             self.state['choking'] = False
         # Have
         elif message_id == 4:
+            self.printf('Have', self.piece_index)
             self.handle_have(payload)
         # Bitfield
         elif message_id == 5:
+            self.printf('Bitfield', self.piece_index)
             self.handle_bitfield(payload)
         # Block
         elif message_id == 7:
+            self.printf('Block', self.piece_index)
             self.handle_block(payload)
         # Metadata
         elif message_id == 20 and not config.PIECE_SIZE:
             # Handshake
             if not self.state['metadata_handshake']:
+                self.printf('Metadata handshake', self.piece_index)
                 self.handle_metadata_handshake(payload)
             # Piece
             else:
+                self.printf('Metadata piece', self.piece_index)
                 self.handle_metadata_piece(payload)
 
 

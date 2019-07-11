@@ -20,6 +20,14 @@ def torrent(path):
     with open(path, 'rb') as stream:
         data = bencode.bdecode(bytes(stream.read()))
         info_dict = data['info']
+
+        print(data['comment'])
+        if 'files' in info_dict:
+            for file in info_dict['files']:
+                print(file['length'])
+        else:
+            print(info_dict['length'])
+
         return info_dict['name'], data['announce'], info_dict, hashlib.sha1(bencode.bencode(info_dict)).digest()
 
 
@@ -42,12 +50,6 @@ if __name__ == '__main__':
 
     print('\033[1m{}\033[0m'.format(name))
     config.START_TIME = time.time()
-
-    # if 'files' in info:
-    #     for file in info['files']:
-    #         print(file['length'])
-    # else:
-    #     print(info['length'])
 
     config.tracker = Tracker(info_hash)
     config.tracker.announce(tracker_url)
