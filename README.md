@@ -28,6 +28,12 @@ python koji
 ### Notes
 Use events instead of checking every 0.1s. This prevents Koji from requesting the same piece twice during the metadata stage.
 
+#### Events
+Peers will have a `piece_available` event
+After getting bitfields and haves, peers will wait for the event to be set
+The manager will determine which pieces need to be requested
+The manager will set the event and the `piece_index` to request a piece
+
 #### Metadata
 1. Connect
 2. Send handshake
