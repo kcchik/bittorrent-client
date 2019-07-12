@@ -63,13 +63,14 @@ class Peer(threading.Thread):
                 self.disconnect()
 
             if not self.state['handshake']:
-                self.printf('Handshake', self.piece_index)
+                self.printf('Handshake', 0)
                 packet = self.handle_handshake(packet)
 
             stream_complete = True
             stream += packet
             while len(stream) >= 4:
                 length = struct.unpack('>I', stream[:4])[0]
+                # Receive blank or message is still incomplete
                 if length == 0 or len(stream) < length + 4:
                     self.send(bytes(4))
                     stream_complete = False
@@ -81,13 +82,13 @@ class Peer(threading.Thread):
             if stream_complete:
                 if not config.PIECE_SIZE:
                     if self.metadata_id != -1:
-                        self.printf('Metadata request', self.piece_index)
+                        self.printf('Metadata request', 0)
                         self.send_metadata_request()
                 elif self.state['choking']:
-                    self.printf('Interested', self.piece_index)
+                    self.printf('Interested', 0)
                     self.send_interested()
                 else:
-                    self.printf('Request', self.piece_index)
+                    self.printf('Request', 0)
                     self.send_request()
 
 
@@ -97,33 +98,33 @@ class Peer(threading.Thread):
 
         # Choke
         if message_id == 0:
-            self.printf('Choke', self.piece_index)
+            self.printf('Choke', 0)
             self.state['choking'] = True
         # Unchoke
         elif message_id == 1:
-            self.printf('Unchoke', self.piece_index)
+            self.printf('Unchoke', 0)
             self.state['choking'] = False
         # Have
         elif message_id == 4:
-            self.printf('Have', self.piece_index)
+            self.printf('Have', 0)
             self.handle_have(payload)
         # Bitfield
         elif message_id == 5:
-            self.printf('Bitfield', self.piece_index)
+            self.printf('Bitfield', 0)
             self.handle_bitfield(payload)
         # Block
         elif message_id == 7:
-            self.printf('Block', self.piece_index)
+            self.printf('Block', 0)
             self.handle_block(payload)
         # Metadata
         elif message_id == 20 and not config.PIECE_SIZE:
             # Handshake
             if not self.state['metadata_handshake']:
-                self.printf('Metadata handshake', self.piece_index)
+                self.printf('Metadata handshake', 0)
                 self.handle_metadata_handshake(payload)
             # Piece
             else:
-                self.printf('Metadata piece', self.piece_index)
+                self.printf('Metadata piece', 0)
                 self.handle_metadata_piece(payload)
 
 
