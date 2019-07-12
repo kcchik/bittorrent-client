@@ -18,12 +18,16 @@ class Tracker:
         }
         response = requests.get(url=url, params=params)
         response = dict(bencode.bdecode(response.content).items())
+
+        # Validate response
         if 'failure reason' in response:
             print('Failure reason:', response['failure reason'])
             sys.exit()
-        elif 'peers' not in response:
+        if 'peers' not in response:
             print('Failure reason:', 'no peers')
             sys.exit()
+
+        # Parse response to get peer addresses
         peers = [response['peers'][i:i + 6] for i in range(0, len(response['peers']), 6)]
         for peer in peers:
             ip = '.'.join(str(i) for i in peer[:4])

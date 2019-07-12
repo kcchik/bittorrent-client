@@ -5,41 +5,24 @@ Command line BitTorrent client for [nyaa.si](https://nyaa.si/)
 * Python
 * Pipenv
 
-### Developing
-Clone this repo
+### Installing
+Open virtualenv
 ```sh
-git clone https://github.com/kcchik/koji.git
-
-cd koji
-```
-
-Launch Pipenv shell and install dependencies
-```sh
-# always develop in pipenv
 pipenv shell
-
-pipenv install
 ```
 
-Start script
+Install dependencies and start
 ```sh
-python koji -h
+pipenv install
+
+python koji
 ```
 
-### TODO
+### To Do
 * [x] Multi-file torrents
 * [x] Magnet links
 * [ ] Reconnect peers
 * [ ] Pause/resume torrents
 
-### Piece management
-
-#### Method 1
-Pieces requested simultaneously. Blocks requested one after another.
-
-Slow pieces will create conjestion, writing happens in large chunks
-
-#### Method 2
-Pieces requested one after another. Blocks requested simultaneously.
-
-Pieces finish in order, but peers won't request from the next piece until the current one is complete
+### Notes
+Use events instead of checking every 0.1s. This prevents Koji from requesting the same piece twice during the metadata stage.
