@@ -23,7 +23,7 @@ def block():
     return {
         'length': config.BLOCK_SIZE,
         'value': b'',
-        'requesting': 0,
+        'requesting': None,
     }
 
 
@@ -32,6 +32,7 @@ def piece(value=b''):
     return {
         'value': value,
         'blocks': [block() for _ in range(num_blocks)],
+        'peers': set(),
         'complete': False,
-        'requesting': False,
+        'requesting': None,
     }

@@ -15,6 +15,7 @@ class Tracker:
         params = {
             'info_hash': self.info_hash,
             'peer_id': self.peer_id,
+            'port': 6881,
         }
         response = requests.get(url=url, params=params)
         response = dict(bencode.bdecode(response.content).items())
