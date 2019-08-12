@@ -1,23 +1,29 @@
 import os
 import sys
-import requests
+
 import bencode
+import requests
 
 
 class Tracker:
-    def __init__(self, info_hash):
+    def __init__(self, info_hash, url):
         self.info_hash = info_hash
+        self.url = url
         self.peer_id = b'--KOJI--' + os.urandom(12)
         self.addresses = []
 
 
-    def announce(self, url):
+    def start(self, left):
         params = {
             'info_hash': self.info_hash,
             'peer_id': self.peer_id,
             'port': 6881,
+            'uploaded': 0,
+            'downloaded': 0,
+            'left': left,
+            'event': 'started',
         }
-        response = requests.get(url=url, params=params)
+        response = requests.get(url=self.url, params=params)
         response = dict(bencode.bdecode(response.content).items())
 
         # Validate response

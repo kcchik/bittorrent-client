@@ -20,23 +20,12 @@ python koji
 
 ### To Do
 * [x] Multi-file torrents
-* [x] Magnet links
-* [ ] Queues
 * [ ] Reconnect peers
 * [ ] Pause/resume torrents
 
 ### Notes
-All available pieces will be stored in a matrix in manager.
-
-#### Metadata
-1. Connect
-2. Send handshake
-3. Receive handshake
-4. Receive metadata handshake
-5. Receive bitfield and haves
-6. Send metadata request
-7. Receive metadata piece
-8. Repeat 6 and 7
+Start a thread for tracker to update peers
+Catch all possible errors and log all disconnects
 
 #### Pieces
 1. Connect

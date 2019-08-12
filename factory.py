@@ -1,5 +1,5 @@
-import os
 import math
+import os
 
 import config
 
@@ -34,5 +34,4 @@ def piece(value=b''):
         'blocks': [block() for _ in range(num_blocks)],
         'peers': set(),
         'complete': False,
-        'requesting': None,
     }
