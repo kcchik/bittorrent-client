@@ -19,44 +19,24 @@ class Parser():
                 'name': ['-v', '--verbose'],
                 'description': 'Run in verbose output mode'
             },
-            {
-                'id': 2,
-                'name': ['--method'],
-                'args': ['1', '2'], 'description': 'Select piece requesting method'
-            },
-        ]
-        self.commands = [
-            {
-                'id': 0,
-                'name': 'torrent',
-                'description': 'Torrent using .torrent file'
-            },
-            {
-                'id': 1,
-                'name': 'magnet',
-                'description': 'Torrent using magnet link'
-            },
         ]
 
 
     def parse(self):
         value = ''
-        args = iter(self.args)
-        for arg in args:
+        for arg in self.args:
             if arg[0] == '-':
-                self.parse_option(arg)
+                self.option(arg)
+            elif value:
+                self.help(message='Specify a single .torrent file')
             else:
-                self.parse_command(arg)
-                value = next(args, '')
-        if not config.COMMAND:
-            self.help()
+                value = arg
         if not value:
-            print('No arguments given for command: {}'.format(config.COMMAND))
-            sys.exit()
+            self.help()
         return value
 
 
-    def parse_option(self, arg):
+    def option(self, arg):
         args = arg.split('=', 1)
         option = next((opt for opt in self.options if args[0] in opt['name']), None)
         if not option:
@@ -65,32 +45,12 @@ class Parser():
             self.help()
         elif option['id'] == 1:
             config.VERBOSE = True
-        elif option['id'] == 2:
-            if len(args) > 1 and args[1] in option['args']:
-                config.METHOD = args[1]
-            else:
-                print('Invalid argument for option: {}'.format(option['name'][0]))
-                sys.exit()
-
-
-    def parse_command(self, arg):
-        command = next((cmd['id'] for cmd in self.commands if arg == cmd['name']), -1)
-        if command == 0:
-            config.COMMAND = 'torrent'
-        elif command == 1:
-            config.COMMAND = 'magnet'
-        else:
-            self.help(message='Unknown command: {}'.format(arg))
 
 
     def help(self, message=None):
         if message:
             print(message)
-        print('Usage: {} <command> <arg>'.format(self.name))
-        print()
-        print('Commands:')
-        for command in self.commands:
-            print('    {}'.format(command['name']).ljust(20), command['description'])
+        print('Usage: {} <torrent>'.format(self.name))
         print()
         print('Options:')
         for option in self.options:
@@ -107,19 +67,21 @@ def connecting():
         print('\rConnecting...', end='\b')
 
 
-def connected():
+def connected(total):
     if not config.VERBOSE:
         print('\rConnected!   ')
+        loading(0, total)
 
 
-def loading(iteration, total, extra=''):
+def loading(iteration, total):
     if not config.VERBOSE:
         filled = int(100 * iteration // total)
         progress_bar = '\033[94m•\033[0m' * filled + '◦' * (100 - filled)
-        print('\r{} {}/{} {}'.format(progress_bar, iteration, total, extra), end='\b')
+        print('\r{} {}/{}'.format(progress_bar, iteration, total), end='\b')
         if iteration == total:
             print()
             print('\033[92m✔\033[0m Complete in {:.3f}s!'.format(time.time() - config.START_TIME))
+            print()
 
 
 def printf(message, prefix=''):

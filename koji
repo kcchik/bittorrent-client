@@ -1,15 +1,15 @@
 #!/usr/bin/env pipenv run python
+import hashlib
+import re
 import sys
 import time
-import re
-import hashlib
-import urllib.parse
+
 import bencode
 
-import config
 import cli
-from tracker import Tracker
+import config
 from manager import Manager
+from tracker import Tracker
 
 
 def torrent(path):
@@ -19,41 +19,23 @@ def torrent(path):
         sys.exit()
     with open(path, 'rb') as stream:
         data = bencode.bdecode(bytes(stream.read()))
-        info_dict = data['info']
 
+        print()
         print(data['comment'])
-        if 'files' in info_dict:
-            for file in info_dict['files']:
-                print(file['length'])
-        else:
-            print(info_dict['length'])
+        print('\033[1m{}\033[0m'.format(data['info']['name']))
 
-        return info_dict['name'], data['announce'], info_dict, hashlib.sha1(bencode.bencode(info_dict)).digest()
-
-
-def magnet(url):
-    regex = re.compile('magnet:.+$')
-    if not regex.match(url):
-        print('Not a magnet link')
-        sys.exit()
-    params = urllib.parse.parse_qs(url[8:])
-    if not all(key in params for key in ['xt', 'tr', 'dn']):
-        print('Invalid magnet link')
-        sys.exit()
-    return params['dn'][0], params['tr'][0], None, bytes(bytearray.fromhex(params['xt'][0][9:]))
+        return data['announce'], data['info'], hashlib.sha1(bencode.bencode(data['info'])).digest()
 
 
 if __name__ == '__main__':
     arg = cli.Parser(sys.argv).parse()
 
-    name, tracker_url, info, info_hash = torrent(arg) if config.COMMAND == 'torrent' else magnet(arg)
+    url, info, info_hash = torrent(arg)
 
-    print('\033[1m{}\033[0m'.format(name))
     config.START_TIME = time.time()
 
-    config.tracker = Tracker(info_hash)
-    config.tracker.announce(tracker_url)
-    config.manager = Manager()
-    if config.COMMAND == 'torrent':
-        config.manager.info(info)
+    config.tracker = Tracker(info_hash, url)
+    config.tracker.start(info['length'])
+
+    config.manager = Manager(info)
     config.manager.start()
