@@ -14,7 +14,7 @@ pipenv install
 python koji
 ```
 
-### To Do
+### TODO
 * [x] Download torrents
 * [x] Multi-file torrents
 * [ ] Magnet links/metadata requests
