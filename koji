@@ -28,19 +28,13 @@ def torrent(path):
 
 
 if __name__ == '__main__':
-    arg = cli.Parser(sys.argv).parse()
-
-    url, info, info_hash = torrent(arg)
-
     config.START_TIME = time.time()
 
-    config.tracker = Tracker(info_hash, url)
+    arg = cli.Parser(sys.argv).parse()
+    url, info, info_hash = torrent(arg)
 
-    if 'length' in info:
-        length = info['length']
-    else:
-        length = sum(file['length'] for file in info['files'])
-    config.tracker.start(length)
+    config.tracker = Tracker(info_hash, url)
+    config.tracker.start()
 
     config.manager = Manager(info)
     config.manager.start()

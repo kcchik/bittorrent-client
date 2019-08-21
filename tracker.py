@@ -13,14 +13,13 @@ class Tracker:
         self.addresses = []
 
 
-    def start(self, left):
+    def start(self):
         params = {
             'info_hash': self.info_hash,
             'peer_id': self.peer_id,
             'port': 6881,
             'uploaded': 0,
             'downloaded': 0,
-            'left': left,
             'event': 'started',
         }
         response = requests.get(url=self.url, params=params)
