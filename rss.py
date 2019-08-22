@@ -4,6 +4,7 @@ import requests
 
 import feedparser
 
+
 def main(stdscr):
     curses.use_default_colors()
     stdscr.addstr(0, 0, 'Koji BitTorrent Client', curses.A_BOLD)
@@ -20,28 +21,38 @@ def main(stdscr):
 
     while key != ord('q'):
         stdscr.refresh()
+        if key == ord(':'):
+            key = 0
+            state = 0
+            continue
+
         if state == 0:
             curses.curs_set(1)
             stdscr.addstr(1, 0, ':')
             search_win = curses.newwin(1, width - 1, 1, 1)
             stdscr.refresh()
             search_pad = curses.textpad.Textbox(search_win)
+
             try:
                 search = search_pad.edit()
             except KeyboardInterrupt:
                 break
+
             curses.curs_set(0)
             item_pad.clear()
             item_pad.refresh(0, 0, 2, 0, height - 1, width - 1)
             stdscr.addstr(3, 0, 'Scraping nyaa.si for torrents...')
             stdscr.refresh()
+
             feed = feedparser.parse('https://nyaa.si/?page=rss&c=1_2&q={}'.format(search))
             if not feed['entries']:
                 stdscr.addstr(3, 0, 'No results'.ljust(width - 1))
                 stdscr.refresh()
                 continue
+
             state = 1
             continue
+
         elif state == 1:
             if key == curses.KEY_DOWN and index < len(feed['entries']) - 1:
                 index += 1
@@ -55,10 +66,6 @@ def main(stdscr):
                 key = 0
                 state = 2
                 continue
-            elif key == ord(':'):
-                key = 0
-                state = 0
-                continue
 
             for i, entry in enumerate(feed['entries']):
                 bold = curses.A_BOLD
@@ -67,20 +74,18 @@ def main(stdscr):
                     bold |= curses.A_STANDOUT
                     dim |= curses.A_STANDOUT
                 item_pad.addstr(item_height * i + 1, 0, entry['title'].ljust(width - 1), bold)
-                item_pad.addstr(item_height * i + 2, 0, '{} - {} seeders'.format(entry['nyaa_size'], entry['nyaa_seeders']).ljust(width - 1), dim)
+                plural = 's' if entry['nyaa_seeders'] != '1' else ''
+                item_pad.addstr(item_height * i + 2, 0, '{} - {} seeder{}'.format(entry['nyaa_size'], entry['nyaa_seeders'], plural).ljust(width - 1), dim)
             item_pad.refresh(scroll_state * item_height, 0, 2, 0, height - 1, width - 1)
+
         elif state == 2:
-            if key == curses.KEY_DOWN:
-                option = 1
-            elif key == curses.KEY_UP:
+            if key == curses.KEY_UP:
                 option = 0
+            elif key == curses.KEY_DOWN:
+                option = 1
             elif key == curses.KEY_LEFT:
                 key = 0
                 state = 1
-                continue
-            elif key == ord(':'):
-                key = 0
-                state = 0
                 continue
             elif key == 10:
                 res = requests.get(feed['entries'][index]['link'])
