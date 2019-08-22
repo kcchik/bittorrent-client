@@ -21,3 +21,4 @@ python koji
 * [ ] Reconnect peers
 * [ ] Pause/resume torrents
 * [ ] Stream torrents
+* [ ] Separate into general torrent client and anime streaming
