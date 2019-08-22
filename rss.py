@@ -52,12 +52,3 @@ def main(stdscr):
 
 if __name__ == '__main__':
     curses.wrapper(main)
-
-# 'link': 'https://nyaa.si/download/1169465.torrent',
-# 'id': 'https://nyaa.si/view/1169465',
-# 'nyaa_seeders': '723',
-# 'nyaa_leechers': '310',
-# 'nyaa_downloads': '2211',
-# 'nyaa_infohash': '63890e867b87f9a6df8b7369ea5303c0a8f8e9ba',
-# 'nyaa_category': 'Anime - Raw',
-# 'nyaa_size': '380.9 MiB',
