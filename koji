@@ -6,7 +6,6 @@ import time
 
 import bencode
 
-import cli
 import config
 from manager import Manager
 from tracker import Tracker
@@ -30,8 +29,7 @@ def torrent(path):
 if __name__ == '__main__':
     config.START_TIME = time.time()
 
-    arg = cli.Parser(sys.argv).parse()
-    url, info, info_hash = torrent(arg)
+    url, info, info_hash = torrent(sys.argv[1])
 
     config.tracker = Tracker(info_hash, url)
     config.tracker.start()

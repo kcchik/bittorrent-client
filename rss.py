@@ -44,7 +44,7 @@ def main(stdscr):
             stdscr.addstr(3, 0, 'Scraping nyaa.si for torrents...')
             stdscr.refresh()
 
-            feed = feedparser.parse('https://nyaa.si/?page=rss&c=1_2&q={}'.format(search))
+            feed = feedparser.parse('https://nyaa.si/?page=rss&q={}'.format(search))
             if not feed['entries']:
                 stdscr.addstr(3, 0, 'No results'.ljust(width - 1))
                 stdscr.refresh()
@@ -95,7 +95,7 @@ def main(stdscr):
 
             stdscr.addstr((index - scroll_state) * item_height + item_height, 0, '   Stream'.ljust(width), curses.A_BOLD | curses.A_STANDOUT)
             stdscr.addstr((index - scroll_state) * item_height + item_height + 1, 0, '   Download'.ljust(width), curses.A_BOLD | curses.A_STANDOUT)
-            stdscr.addstr((index - scroll_state) * item_height + item_height + option, 0, ' •', curses.A_BOLD | curses.A_STANDOUT)
+            stdscr.addstr((index - scroll_state) * item_height + item_height + option, 0, ' >', curses.A_BOLD | curses.A_STANDOUT)
 
         try:
             key = stdscr.getch()
