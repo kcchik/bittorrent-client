@@ -16,12 +16,3 @@ pipenv install
 ```sh
 python koji
 ```
-
-### TODO
-* [x] Download torrents
-* [x] Multi-file torrents
-* [ ] Magnet links/metadata requests
-* [ ] Reconnect disconnected peers
-* [ ] Pause/resume torrents
-* [ ] Stream torrents
-* [ ] Separate into general torrent client and anime streaming
