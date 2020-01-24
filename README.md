@@ -1,9 +1,5 @@
 # Koji
-Command line BitTorrent client for [nyaa.si](https://nyaa.si/)
-
-### Requirements
-* Python
-* Pipenv
+CLI BitTorrent client for [nyaa.si](https://nyaa.si/)
 
 ### Installing
 ```sh
