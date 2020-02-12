@@ -8,12 +8,7 @@ pipenv shell
 pipenv install
 ```
 
-### Running
-```sh
-python koji
-```
-
 ### Usage
 ```sh
-
+python koji
 ```
