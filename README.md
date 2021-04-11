@@ -10,5 +10,5 @@ pipenv install
 
 ### Usage
 ```sh
-python koji <torrent file>
+python koji <path to torrent>
 ```
