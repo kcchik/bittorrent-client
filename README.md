@@ -1,4 +1,4 @@
-# Koji
+# BitTorrent Client
 CLI BitTorrent client for [nyaa.si](https://nyaa.si/)
 
 ### Installing
